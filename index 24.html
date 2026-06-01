@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reimagining Greater Bengaluru — Goodearth Eco Futures</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100;0,9..144,200;0,9..144,300;1,9..144,100;1,9..144,200;1,9..144,300&family=Syne:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink:    #07100a;
+      --earth:  #1b3828;
+      --sage:   #6b9e78;
+      --pale:   #b8ceb4;
+      --cream:  #f2ead8;
+      --gold:   #b8893a;
+      --water:  #2a5f7a;
+      --terr:   #8c5a3c;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--ink);
+      color: var(--cream);
+      font-family: 'Fraunces', serif;
+      overflow-x: hidden;
+    }
+
+    /* ── CURSOR ── */
+    * { cursor: none; }
+    #cur {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(242,234,216,0.8);
+      position: fixed; pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: width .3s, height .3s;
+      mix-blend-mode: difference;
+    }
+    #cur.big { width: 30px; height: 30px; }
+
+    /* ── PROGRESS LINE ── */
+    #prog { position: fixed; top: 0; left: 0; height: 1px; background: rgba(184,200,180,.3); z-index: 900; width: 0%; transition: width .05s; }
+
+    /* ── NAV ── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 800;
+      padding: 0 52px;
+      opacity: 0; transform: translateY(-8px);
+      animation: navfade 1s ease 3s forwards;
+      background: rgba(7,16,10,.92);
+      backdrop-filter: blur(18px);
+    }
+    @keyframes navfade { to { opacity: 1; transform: none; } }
+    #nav.solid { background: rgba(7,16,10,.98); }
+    .nav-row1 {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; padding: 16px 0 12px;
+      border-bottom: 1px solid rgba(184,200,180,.06);
+    }
+    .nav-ge img { height: 20px; filter: brightness(0) invert(1); opacity: .65; }
+    .nav-ge span { font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: rgba(184,200,180,.4); }
+    .nav-title { font-family: 'Fraunces', serif; font-size: .92rem; font-weight: 200; font-style: italic; color: rgba(242,234,216,.6); letter-spacing: .06em; text-align: center; }
+    .nav-actions { display: flex; justify-content: flex-end; gap: 24px; align-items: center; }
+    .nav-actions a { font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: rgba(184,200,180,.35); text-decoration: none; transition: color .2s; }
+    .nav-actions a:hover { color: rgba(184,200,180,.8); }
+    .nav-pill { border: 1px solid rgba(184,136,58,.3) !important; color: var(--gold) !important; padding: 7px 16px; border-radius: 2px; }
+    .nav-row2 { display: flex; justify-content: center; }
+    .nav-row2 a { font-family: 'Syne', sans-serif; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(184,200,180,.25); text-decoration: none; padding: 7px 18px; transition: color .2s; }
+    .nav-row2 a:hover { color: rgba(184,200,180,.65); }
+    .nav-row2 .sep { width: 1px; height: 9px; background: rgba(184,200,180,.07); align-self: center; }
+
+    /* ══════════════════════════════════════
+       SCENE TRACK ARCHITECTURE
+       Each scene = tall track div (creates scroll)
+       + sticky inner that stays viewport-height
+    ══════════════════════════════════════ */
+
+    .scene-track {
+      position: relative;
+    }
+
+    .scene-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── VIDEO LAYER ── */
+    .scene-video {
+      position: absolute; inset: 0; z-index: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+    .scene-video.active { opacity: 1; }
+    .scene-video video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    /* Video placeholder (until real video added) */
+    .scene-video-placeholder {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transition: opacity 1.4s ease;
+    }
+    .scene-video-placeholder.active { opacity: 1; }
+
+    /* ── GRADIENT OVERLAYS ── */
+    .scene-grad {
+      position: absolute; inset: 0; z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ── MAP OVERLAY ── */
+    .scene-map {
+      position: absolute; inset: 0; z-index: 2;
+      opacity: 0;
+      transition: opacity 2s ease;
+      pointer-events: none;
+    }
+    .scene-map.show { opacity: 1; }
+
+    /* ── TEXT LAYER ── */
+    .scene-text {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 8vw 10vh;
+    }
+    .scene-text.center {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 8vw;
+    }
+
+    /* ── TYPOGRAPHY ── */
+    .line {
+      display: block;
+      font-family: 'Fraunces', serif;
+      font-weight: 100;
+      color: var(--cream);
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 1.1s cubic-bezier(.25,.46,.45,.94),
+                  transform 1.1s cubic-bezier(.25,.46,.45,.94);
+      line-height: 1.08;
+      letter-spacing: -.01em;
+    }
+    .line.show { opacity: 1; transform: none; }
+    .line.gone { opacity: 0; transform: translateY(-14px); transition: opacity .7s ease, transform .7s ease; }
+
+    .line-xxl { font-size: clamp(3rem, 6.5vw, 6.5rem); }
+    .line-xl  { font-size: clamp(2.4rem, 5vw, 5rem); }
+    .line-lg  { font-size: clamp(1.8rem, 3.5vw, 3.5rem); }
+    .line-md  { font-size: clamp(1.2rem, 2.2vw, 2.2rem); }
+    .line-sm  { font-size: clamp(.85rem, 1.4vw, 1.3rem); font-family: 'Syne', sans-serif; font-weight: 400; letter-spacing: .04em; }
+
+    .line-italic { font-style: italic; }
+    .line-sage { color: var(--sage); }
+    .line-pale { color: rgba(184,200,180,.7); font-weight: 200; }
+    .line-gold { color: var(--gold); }
+    .line-eyebrow { font-family: 'Syne', sans-serif; font-size: .65rem; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); }
+    .line-gap { height: clamp(.8rem, 1.5vh, 1.5rem); display: block; }
+
+    /* ── DATA MOMENTS ── */
+    .data-row {
+      display: flex; gap: 3vw; align-items: flex-start;
+      opacity: 0; transform: translateY(22px);
+      transition: opacity 1.1s ease, transform 1.1s ease;
+    }
+    .data-row.show { opacity: 1; transform: none; }
+    .data-row.gone { opacity: 0; transform: translateY(-14px); }
+    .datum { display: flex; flex-direction: column; gap: 5px; }
+    .datum-val { font-family: 'Fraunces', serif; font-size: clamp(2.2rem, 4.5vw, 4rem); font-weight: 100; color: var(--cream); line-height: 1; }
+    .datum-label { font-family: 'Syne', sans-serif; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(184,200,180,.4); }
+
+    /* ── SCENE-SPECIFIC BACKGROUNDS ── */
+
+    /* S1 - alive landscape */
+    .s1-bg { background: radial-gradient(ellipse at 30% 60%, rgba(43,80,60,.5) 0%, transparent 60%), radial-gradient(ellipse at 75% 30%, rgba(42,95,122,.22) 0%, transparent 55%), linear-gradient(170deg, #07100a 0%, #0d1c10 50%, #07100a 100%); }
+
+    /* S2 - water blue-green */
+    .s2-bg { background: radial-gradient(ellipse at 45% 55%, rgba(30,74,94,.55) 0%, transparent 60%), radial-gradient(ellipse at 25% 30%, rgba(43,80,60,.3) 0%, transparent 55%), #07100a; }
+
+    /* S3 - urban grey pressure */
+    .s3-bg { background: radial-gradient(ellipse at 50% 50%, rgba(60,55,50,.6) 0%, transparent 70%), #0a0e0c; }
+
+    /* S4 - black void */
+    .s4-bg { background: #000; }
+
+    /* S5 - ecological hope */
+    .s5-bg { background: radial-gradient(ellipse at 40% 50%, rgba(43,80,60,.5) 0%, transparent 60%), radial-gradient(ellipse at 70% 25%, rgba(30,74,94,.3) 0%, transparent 50%), #07100a; }
+
+    /* S6 - human scale warm */
+    .s6-bg { background: radial-gradient(ellipse at 35% 60%, rgba(60,45,30,.45) 0%, transparent 55%), radial-gradient(ellipse at 70% 30%, rgba(43,80,60,.3) 0%, transparent 55%), #08100a; }
+
+    /* S7 - network pullback */
+    .s7-bg { background: radial-gradient(ellipse at 50% 45%, rgba(43,80,60,.3) 0%, transparent 65%), #07100a; }
+
+    /* ── GRADIENT OVERLAYS ── */
+    .grad-bottom { background: linear-gradient(to top, rgba(7,16,10,.85) 0%, rgba(7,16,10,.3) 45%, transparent 100%); }
+    .grad-left   { background: linear-gradient(to right, rgba(7,16,10,.88) 0%, rgba(7,16,10,.35) 55%, transparent 100%); }
+    .grad-center { background: radial-gradient(ellipse at 50% 50%, transparent 20%, rgba(7,16,10,.65) 100%); }
+    .grad-dark   { background: rgba(0,0,0,.72); }
+    .grad-s3     { background: linear-gradient(to bottom, transparent 0%, rgba(10,14,12,.8) 100%); }
+
+    /* ── ANIMATED CONTOUR LINES (reusable) ── */
+    .contour-anim { animation: contourpulse 6s ease-in-out infinite alternate; }
+    @keyframes contourpulse { from { opacity: .6; } to { opacity: 1; } }
+
+    /* ── WATER SHIMMER ── */
+    .water-shimmer {
+      position: absolute; z-index: 3;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(42,95,122,.5) 0%, transparent 70%);
+      animation: waterpulse 4s ease-in-out infinite;
+    }
+    @keyframes waterpulse { 0%,100% { transform: scale(1); opacity: .4; } 50% { transform: scale(1.12); opacity: .7; } }
+
+    /* ── SCROLL HINT ── */
+    #shint {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      z-index: 700; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0; animation: navfade .8s ease 4.5s forwards;
+      transition: opacity .5s;
+    }
+    #shint.gone { opacity: 0 !important; pointer-events: none; }
+    #shint span { font-family: 'Syne', sans-serif; font-size: 7.5px; letter-spacing: .22em; text-transform: uppercase; color: rgba(184,200,180,.25); }
+    .shline { width: 1px; height: 38px; background: linear-gradient(to bottom, transparent, rgba(184,200,180,.22)); animation: shpulse 2.2s ease-in-out infinite; }
+    @keyframes shpulse { 0%,100%{opacity:.22} 50%{opacity:.7} }
+
+    /* ── MANIFESTO PANEL ── */
+    #manifesto {
+      position: fixed; inset: 0; z-index: 950;
+      background: var(--ink);
+      transform: translateY(100%);
+      transition: transform .7s cubic-bezier(.4,0,.2,1);
+      overflow-y: auto; padding: 100px 52px 80px;
+    }
+    #manifesto.open { transform: none; }
+    .mf-close {
+      position: fixed; top: 32px; right: 52px; z-index: 960;
+      font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(184,200,180,.4); background: none; border: none; transition: color .2s;
+    }
+    .mf-close:hover { color: var(--cream); }
+    .mf-wrap { max-width: 680px; margin: 0 auto; }
+    .mf-title { font-family: 'Fraunces', serif; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 200; font-style: italic; color: var(--cream); margin-bottom: 44px; line-height: 1.1; }
+    .mf-body p { font-family: 'Syne', sans-serif; font-size: 13.5px; line-height: 2; color: rgba(184,200,180,.65); margin-bottom: 22px; }
+    .mf-body strong { color: rgba(184,200,180,.9); font-weight: 500; }
+    .mf-body em { font-style: italic; color: var(--sage); }
+    .mf-section { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 300; color: var(--cream); margin: 40px 0 14px; }
+
+    /* ── DEEP CONTENT ── */
+    #deep { background: var(--ink); position: relative; z-index: 10; }
+
+    /* Nodes */
+    .nodes { padding: 140px 52px; }
+    .nodes-hdr { max-width: 580px; margin-bottom: 80px; }
+    .ey { font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px; display: flex; align-items: center; gap: 12px; }
+    .ey::before { content: ''; width: 20px; height: 1px; background: var(--gold); }
+    .sh { font-family: 'Fraunces', serif; font-size: clamp(1.8rem, 3vw, 2.8rem); font-weight: 200; line-height: 1.1; color: var(--cream); margin-bottom: 16px; }
+    .sh em { font-style: italic; color: var(--sage); }
+    .sp { font-family: 'Syne', sans-serif; font-size: 13.5px; line-height: 1.9; color: rgba(184,200,180,.6); }
+
+    .node { display: flex; flex-direction: column; border: 1px solid rgba(107,158,120,.15); border-radius: 4px; overflow: hidden; background: rgba(27,56,40,.15); transition: border-color .3s, transform .3s; }
+    .node:hover { border-color: rgba(107,158,120,.3); transform: translateY(-4px); }
+    .node-img { width: 100%; height: 260px; object-fit: cover; }
+    .node-content { padding: 36px 32px; display: flex; flex-direction: column; flex: 1; }
+    .nnum { font-family: 'Fraunces', serif; font-size: 2.2rem; font-weight: 200; color: rgba(107,158,120,.4); line-height: 1; margin-bottom: 12px; }
+    .nbadge { font-family: 'Syne', sans-serif; font-size: 8px; letter-spacing: .16em; text-transform: uppercase; padding: 4px 10px; border: 1px solid rgba(184,136,58,.2); color: var(--gold); border-radius: 2px; display: inline-block; margin-bottom: 16px; align-self: flex-start; }
+    .nname { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 300; color: var(--cream); line-height: 1.25; margin-bottom: 8px; }
+    .nloc { font-family: 'Syne', sans-serif; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: rgba(184,200,180,.4); margin-bottom: 20px; }
+    .nbody { font-family: 'Syne', sans-serif; font-size: 13.5px; line-height: 1.88; color: rgba(184,200,180,.6); margin-bottom: 24px; flex: 1; }
+    .nlink { font-family: 'Syne', sans-serif; font-size: 9.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: gap .2s; margin-top: auto; }
+    .nlink:hover { gap: 14px; }
+    .nlink::after { content: '→'; }
+    .nlink.dim { color: rgba(184,136,58,.3); pointer-events: none; }
+    
+    .nodes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+
+
+    /* Baselines */
+    .baselines { padding: 140px 52px; background: rgba(13,24,16,.6); }
+    .bl-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: rgba(107,158,120,.05); }
+    .bl { background: var(--ink); padding: 52px 44px; position: relative; overflow: hidden; transition: background .3s; }
+    .bl:hover { background: rgba(13,22,16,.9); }
+    .bl-bgn { position: absolute; top: 18px; right: 22px; font-family: 'Fraunces', serif; font-size: 6rem; font-weight: 200; color: rgba(107,158,120,.04); line-height: 1; }
+    .bl-badge { font-family: 'Syne', sans-serif; font-size: 8px; letter-spacing: .18em; text-transform: uppercase; padding: 4px 10px; border: 1px solid rgba(107,158,120,.2); color: var(--sage); border-radius: 2px; display: inline-block; margin-bottom: 17px; }
+    .bl-name { font-family: 'Fraunces', serif; font-size: 2.3rem; font-weight: 200; color: var(--cream); margin-bottom: 4px; line-height: 1.05; }
+    .bl-orig { font-family: 'Syne', sans-serif; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: rgba(184,200,180,.28); margin-bottom: 18px; }
+    .bl-body { font-family: 'Syne', sans-serif; font-size: 13px; line-height: 1.88; color: rgba(184,200,180,.52); margin-bottom: 22px; }
+    .bl-pull { font-family: 'Fraunces', serif; font-style: italic; font-size: 12.5px; color: rgba(184,200,180,.38); border-left: 1px solid rgba(107,158,120,.18); padding-left: 14px; margin-bottom: 22px; line-height: 1.75; }
+    .bl-stats { display: flex; border-top: 1px solid rgba(107,158,120,.08); padding-top: 18px; }
+    .bls { flex: 1; padding: 0 14px; border-right: 1px solid rgba(107,158,120,.06); }
+    .bls:first-child { padding-left: 0; }
+    .bls:last-child { border-right: none; }
+    .bls-v { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 200; color: var(--cream); line-height: 1; }
+    .bls-l { font-family: 'Syne', sans-serif; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: rgba(184,200,180,.28); margin-top: 3px; }
+
+    /* Bottom */
+    .bottom { min-height: 100vh; background: var(--ink); padding: 60px 52px 0; display: grid; grid-template-rows: 1fr auto; position: relative; z-index: 10; }
+    .btm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; padding-bottom: 40px; }
+    .btm-h { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 200; color: var(--cream); margin-bottom: 14px; line-height: 1.2; }
+    .btm-h em { font-style: italic; color: var(--sage); }
+    .btm-p { font-family: 'Syne', sans-serif; font-size: 13px; line-height: 1.9; color: rgba(184,200,180,.55); }
+    .fld-line { margin-bottom: 0; }
+    .fld-line label { display: block; font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: rgba(184,200,180,.6); margin-bottom: 6px; }
+    .fld-line input { width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(184,200,180,.15); padding: 8px 0; color: var(--cream); font-family: 'Syne', sans-serif; font-size: 14px; transition: border-color .3s ease; }
+    .fld-line input:focus { outline: none; border-bottom-color: var(--cream); }
+    .sub-pill { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 16px 32px; background: #fff; color: #000; border: none; border-radius: 40px; cursor: pointer; transition: transform .2s ease, opacity .2s ease; margin-top: 8px; align-self: flex-start; }
+    .sub-pill:hover { opacity: 0.9; transform: scale(1.02); }
+    footer { border-top: 1px solid rgba(107,158,120,.07); padding: 28px 0 36px; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 36px; }
+    .ft-brand .fn { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; font-style: italic; color: var(--cream); margin-bottom: 3px; }
+    .ft-brand .fs { font-family: 'Syne', sans-serif; font-size: 7.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(184,200,180,.22); margin-bottom: 10px; }
+    .ft-brand p { font-family: 'Syne', sans-serif; font-size: 12px; line-height: 1.7; color: rgba(184,200,180,.35); max-width: 210px; }
+    .ft-col h4 { font-family: 'Syne', sans-serif; font-size: 8px; letter-spacing: .2em; text-transform: uppercase; color: rgba(184,200,180,.18); margin-bottom: 13px; }
+    .ft-col a { display: block; font-family: 'Syne', sans-serif; font-size: 12px; color: rgba(184,200,180,.38); text-decoration: none; margin-bottom: 7px; transition: color .2s; }
+    .ft-col a:hover { color: var(--cream); }
+    .ft-copy { grid-column: 1/-1; border-top: 1px solid rgba(107,158,120,.05); padding-top: 18px; display: flex; justify-content: space-between; font-family: 'Syne', sans-serif; font-size: 8.5px; letter-spacing: .06em; color: rgba(184,200,180,.15); }
+
+    /* Deep content reveal */
+    .rv { opacity: 0; transform: translateY(24px); transition: opacity .8s ease, transform .8s ease; }
+    .rv.on { opacity: 1; transform: none; }
+    .rv2 { transition-delay: .14s; }
+    .rv3 { transition-delay: .26s; }
+
+    /* Manifesto trigger */
+    .mf-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: 'Syne', sans-serif; font-size: 9.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(184,200,180,.45); background: none; border: 1px solid rgba(184,200,180,.15);
+      padding: 10px 20px; border-radius: 2px; transition: all .2s; margin-top: 2rem;
+    }
+    .mf-btn:hover { color: var(--cream); border-color: rgba(184,200,180,.4); }
+    .mf-btn::after { content: '↗'; }
+
+    /* Opening lines animate in on page load */
+    .load-line-1 {
+      animation: loadreveal 1.4s cubic-bezier(.25,.46,.45,.94) 0.8s forwards;
+      opacity: 0; transform: translateY(22px);
+    }
+    .load-line-2 {
+      animation: loadreveal 1.4s cubic-bezier(.25,.46,.45,.94) 2.2s forwards;
+      opacity: 0; transform: translateY(22px);
+    }
+    @keyframes loadreveal {
+      to { opacity: 1; transform: none; }
+    }
+
+    /* ══════════════════════════════════════
+       FIXED-VIDEO SECTION ARCHITECTURE
+       Video fixed behind, text accumulates on scroll
+    ══════════════════════════════════════ */
+    .vid-section {
+      position: relative;
+    }
+    .vid-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      z-index: 0;
+    }
+    .vid-fixed.active { opacity: 1; }
+    .vid-fixed video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    /* Sticky text overlay — accumulates lines */
+    .vid-textbox {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 8vw 10vh;
+      gap: .85rem;
+    }
+    /* Each spacer = one scroll step, 100vh tall */
+    .vid-spacer {
+      height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+    /* Individual lines — fade in and STAY */
+    .vline {
+      display: block;
+      font-family: 'Fraunces', serif;
+      font-weight: 100;
+      color: var(--cream);
+      opacity: 0;
+      transition: opacity 1.1s ease;
+      line-height: 1.08;
+      max-width: 560px;
+    }
+    .vline.show { opacity: 1; }
+    .vl-eyebrow { font-family: 'Syne', sans-serif; font-size: .65rem; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); }
+    .vl-xl  { font-size: clamp(2rem, 4.5vw, 4.5rem); }
+    .vl-md  { font-size: clamp(1rem, 1.8vw, 1.6rem); color: rgba(184,200,180,.7); }
+
+    /* ══════════════════════════════════════
+       PHILOSOPHY — Horizontal scroll cards
+    ══════════════════════════════════════ */
+    .phil-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(184,200,180,.2);
+      transition: background .3s, transform .3s;
+    }
+    .phil-dot.active {
+      background: var(--gold);
+      transform: scale(1.4);
+    }
+    .phil-card {
+      width: 46vw; max-width: 520px; min-width: 340px;
+      flex-shrink: 0;
+      background: rgba(27,56,40,.25);
+      border: 1px solid rgba(107,158,120,.1);
+      border-radius: 4px;
+      padding: 52px 48px 48px;
+      position: relative;
+      transition: border-color .3s, background .3s;
+    }
+    .phil-card:hover {
+      border-color: rgba(107,158,120,.22);
+      background: rgba(27,56,40,.4);
+    }
+    .pc-num {
+      font-family: 'Fraunces', serif; font-size: 3.5rem;
+      font-weight: 200; color: rgba(107,158,120,.1);
+      line-height: 1; display: block; margin-bottom: 16px;
+    }
+    .pc-title {
+      font-family: 'Fraunces', serif; font-size: clamp(1.4rem,2.2vw,2rem);
+      font-weight: 200; color: var(--cream); line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .pc-body {
+      font-family: 'Syne', sans-serif; font-size: 13px;
+      line-height: 1.85; color: rgba(184,200,180,.55);
+    }
+    .pc-icon {
+      font-size: 1.6rem; position: absolute;
+      bottom: 44px; right: 44px;
+      opacity: .35; filter: grayscale(.4);
+    }
+
+    
+
+    /* ══ PHILOSOPHY — glass cards over video ══ */
+    #phil-track {
+      position: relative;
+    }
+    #phil-track .vid-fixed {
+      /* inherits vid-fixed sticky behaviour */
+    }
+    #phil-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 33.33vw 1fr;
+      pointer-events: none;
+    }
+    #phil-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 3vw 0 6vw;
+      pointer-events: none;
+    }
+    .phil-eyebrow {
+      font-family: 'Syne', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: .24em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .phil-eyebrow span { width: 18px; height: 1px; background: var(--gold); display: block; flex-shrink: 0; }
+    .phil-heading {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.6rem, 2.6vw, 2.6rem);
+      font-weight: 200; line-height: 1.1;
+      color: var(--cream); margin-bottom: 16px;
+    }
+    .phil-heading em { font-style: italic; color: var(--sage); }
+    .phil-sub {
+      font-family: 'Syne', sans-serif; font-size: 13px;
+      line-height: 1.82; color: rgba(184,200,180,.45); max-width: 300px;
+    }
+    #phil-dots { display: flex; gap: 8px; margin-top: 32px; }
+    .phil-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(184,200,180,.2);
+      transition: background .35s, transform .35s;
+    }
+    .phil-dot.active { background: var(--gold); transform: scale(1.5); }
+    #phil-right {
+      display: flex; align-items: center;
+      overflow: hidden; padding: 0 4vw;
+      pointer-events: none;
+    }
+    #phil-cards {
+      display: flex; gap: 24px;
+      will-change: transform;
+      transition: transform .7s cubic-bezier(.4,0,.2,1);
+    }
+    .phil-card {
+      width: calc(33.33vw - 24px); min-width: 300px;
+      flex-shrink: 0;
+      /* Translucent matte glass */
+      background: rgba(10,22,14,.52);
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      border: 1px solid rgba(184,200,180,.12);
+      border-radius: 6px;
+      padding: 44px 40px 40px;
+      pointer-events: all;
+      transition: border-color .3s, background .3s;
+    }
+    .phil-card:hover {
+      border-color: rgba(184,200,180,.22);
+      background: rgba(10,22,14,.65);
+    }
+    .pc-num {
+      font-family: 'Fraunces', serif; font-size: 3rem;
+      font-weight: 200; color: rgba(107,158,120,.18);
+      line-height: 1; display: block; margin-bottom: 12px;
+    }
+    .pc-title {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.2rem, 1.9vw, 1.8rem);
+      font-weight: 200; color: var(--cream);
+      line-height: 1.15; margin-bottom: 18px;
+    }
+    .pc-body {
+      font-family: 'Syne', sans-serif; font-size: 12.5px;
+      line-height: 1.85; color: rgba(184,200,180,.55);
+    }
+    .phil-spacer { height: 100vh; }
+  </style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="prog"></div>
+<div id="shint"><span>Scroll to explore</span><div class="shline"></div></div>
+
+<!-- ═══════ NAV ═══════ -->
+<nav id="nav">
+  <div class="nav-row1">
+    <div class="nav-ge">
+      <img src="assets/white horizontal.png" alt="GoodEarth"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <span style="display:none">Goodearth Eco Futures</span>
+    </div>
+    <div class="nav-title">Reimagining Greater Bengaluru</div>
+    <div class="nav-actions">
+      <a href="#deep">Explore</a>
+    </div>
+  </div>
+  <div class="nav-row2">
+    <a href="#deep">Proposed Nodes</a><div class="sep"></div>
+    <a href="#baselines">Historical Baselines</a><div class="sep"></div>
+    <a href="#bottom">Join the Dialogue</a><div class="sep"></div>
+    <a href="#" onclick="openManifesto();return false">Read the Manifesto</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 1 — LANDSCAPE AT THE EDGE
+═══════════════════════════════════════════ -->
+<div class="scene-track" style="height: 160vh" id="s1track">
+  <div class="scene-sticky" id="s1">
+
+    <!-- Dark atmospheric background — video loads over this -->
+    <div class="scene-video-placeholder active s1-bg" style="position:absolute;inset:0;">
+      <div class="water-shimmer" style="width:320px;height:160px;left:50%;top:52%;transform:translate(-50%,-50%)"></div>
+    </div>
+
+    <!-- Video (replace src when available) -->
+    <div class="scene-video">
+      <video autoplay muted loop playsinline id="v1"
+             poster=""
+             data-src="assets/Scene 1.mp4">
+      </video>
+    </div>
+
+    <div class="scene-grad grad-bottom"></div>
+
+
+    <!-- Text -->
+    <div class="scene-text">
+      <span class="line line-xxl load-line-1">As Bengaluru<br>expands outward—</span>
+      <span class="line line-xl line-italic line-sage load-line-2">…the future of its landscapes<br>is still being decided.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 2 — WATER SYSTEMS (fixed-video technique)
+═══════════════════════════════════════════ -->
+<div class="vid-section" id="s2track">
+
+  <!-- Video — sticky, stays pinned while spacers scroll -->
+  <div class="vid-fixed" id="s2vidfixed">
+    <video autoplay muted loop playsinline id="v2" data-src="assets/Scene 2.mp4"></video>
+    <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(7,16,10,.8) 0%,rgba(7,16,10,.15) 60%,transparent 100%);z-index:1;"></div>
+  </div>
+
+  <!-- Sticky text overlay — lines accumulate as you scroll -->
+  <div class="vid-textbox">
+    <span class="vline vl-eyebrow" id="s2l0">Water Systems</span>
+    <span class="vline vl-xl" id="s2l1">Water shaped this land<br><em style="font-style:italic;color:var(--sage)">long before<br>infrastructure.</em></span>
+    <span class="vline vl-md" id="s2l2">Monsoon cycles. Catchment hydrology.<br>A living aquifer beneath the surface.</span>
+  </div>
+
+  <!-- Spacers — each triggers one line reveal -->
+  <div class="vid-spacer" id="s2step0"></div>
+  <div class="vid-spacer" id="s2step1"></div>
+  <div class="vid-spacer" id="s2step2"></div>
+
+
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 3 — PARKS CINEMATIC + CARDS INLINE
+═══════════════════════════════════════════ -->
+
+<!-- Cinematic text moment -->
+<div class="scene-track" style="height: 350vh" id="s3track">
+  <div class="scene-sticky" id="s3">
+    <div class="scene-video-placeholder active" style="position:absolute;inset:0;background:var(--ink);">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 35% 55%,rgba(43,80,60,.22) 0%,transparent 60%),radial-gradient(ellipse at 72% 30%,rgba(42,95,122,.12) 0%,transparent 50%);"></div>
+    </div>
+    <div class="scene-grad" style="background:linear-gradient(to top,rgba(7,16,10,.8) 0%,rgba(7,16,10,.2) 60%,transparent 100%)"></div>
+    <div class="scene-text center">
+      <span class="line line-eyebrow" data-scene="3" data-step="0">Before Bengaluru grew</span>
+      <span class="line-gap"></span>
+      <span class="line line-xl" data-scene="3" data-step="1">Lalbagh. 1760.<br>Cubbon Park. 1870.</span>
+      <span class="line-gap"></span>
+      <span class="line line-md line-italic line-pale" data-scene="3" data-step="2">Planned before the city arrived.<br>Irreplaceable today.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Parks detail cards — scroll into view directly after the cinematic moment -->
+<div style="background:var(--ink);padding:100px 52px 120px;position:relative;z-index:10;">
+  <div style="max-width:580px;margin-bottom:72px;">
+    <p style="font-family:'Syne',sans-serif;font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;display:flex;align-items:center;gap:12px;"><span style="width:20px;height:1px;background:var(--gold);display:inline-block;flex-shrink:0;"></span>Two centuries of public infrastructure as our guide</p>
+    <h2 style="font-family:'Fraunces',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:200;line-height:1.1;color:var(--cream);margin-bottom:18px;">Both were planned before<br><em style="font-style:italic;color:var(--sage)">the city arrived at scale.</em></h2>
+    <p style="font-family:'Syne',sans-serif;font-size:13.5px;line-height:1.9;color:rgba(184,200,180,.6);">Neither could be created today. The question is only: where are the next ones?</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:rgba(107,158,120,.05);">
+
+    <!-- Lalbagh -->
+    <div class="rv" style="background:var(--ink);padding:52px 44px;position:relative;overflow:hidden;">
+      <span style="position:absolute;top:18px;right:22px;font-family:'Fraunces',serif;font-size:6rem;font-weight:200;color:rgba(107,158,120,.04);line-height:1;pointer-events:none;">01</span>
+      <span style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.18em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(107,158,120,.2);color:var(--sage);border-radius:2px;display:inline-block;margin-bottom:17px;">Established 1760 · 265-Year Legacy</span>
+      <h3 style="font-family:'Fraunces',serif;font-size:2.3rem;font-weight:200;color:var(--cream);margin-bottom:4px;line-height:1.05;">Lalbagh</h3>
+      <p style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-bottom:18px;">South Bengaluru · 240 Acres · Commissioned by Hyder Ali</p>
+      <p style="font-family:'Syne',sans-serif;font-size:13px;line-height:1.88;color:rgba(184,200,180,.52);margin-bottom:24px;">A massive regional climate anchor supporting 1,854 distinct plant species. It exists because a long-term public decision was made centuries before modern real estate pressures arrived.</p>
+      <div style="display:flex;border-top:1px solid rgba(107,158,120,.08);padding-top:18px;">
+        <div style="flex:1;padding-right:14px;border-right:1px solid rgba(107,158,120,.06);">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">240</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Acres</div>
+        </div>
+        <div style="flex:1;padding:0 14px;border-right:1px solid rgba(107,158,120,.06);">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">1,854</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Flora species</div>
+        </div>
+        <div style="flex:1;padding-left:14px;">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">265</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Years old</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cubbon Park -->
+    <div class="rv" style="background:var(--ink);padding:52px 44px;position:relative;overflow:hidden;">
+      <span style="position:absolute;top:18px;right:22px;font-family:'Fraunces',serif;font-size:6rem;font-weight:200;color:rgba(107,158,120,.04);line-height:1;pointer-events:none;">02</span>
+      <span style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.18em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(107,158,120,.2);color:var(--sage);border-radius:2px;display:inline-block;margin-bottom:17px;">Established 1870 · 156-Year Legacy</span>
+      <h3 style="font-family:'Fraunces',serif;font-size:2.3rem;font-weight:200;color:var(--cream);margin-bottom:4px;line-height:1.05;">Cubbon Park</h3>
+      <p style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-bottom:18px;">Central Bengaluru · ~197 Acres · Sri Chamarajendra Park</p>
+      <p style="font-family:'Syne',sans-serif;font-size:13px;line-height:1.88;color:rgba(184,200,180,.52);margin-bottom:16px;">The central lungs of the metropolis. Real estate within 1km carries a 20–35% premium. The park defines the neighbourhood — and no price can recreate it.</p>
+      <p style="font-family:'Fraunces',serif;font-style:italic;font-size:12.5px;color:rgba(184,200,180,.38);border-left:1px solid rgba(107,158,120,.18);padding-left:14px;margin-bottom:20px;line-height:1.75;">"Open lawns, well-kept roads, walking paths and shady playgrounds. Its natural undulated ground, slope, water bodies and rocks afford beautiful and picturesque landscapes."</p>
+      <div style="display:flex;border-top:1px solid rgba(107,158,120,.08);padding-top:18px;">
+        <div style="flex:1;padding-right:14px;border-right:1px solid rgba(107,158,120,.06);">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">197</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Active acres</div>
+        </div>
+        <div style="flex:1;padding:0 14px;border-right:1px solid rgba(107,158,120,.06);">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">6,000+</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Mature trees</div>
+        </div>
+        <div style="flex:1;padding-left:14px;">
+          <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:200;color:var(--cream);line-height:1;">20–35%</div>
+          <div style="font-family:'Syne',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(184,200,180,.28);margin-top:3px;">Property premium</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 3b — GROWTH
+═══════════════════════════════════════════ -->
+<div class="vid-section" id="s3btrack">
+  <div class="vid-fixed" id="s3bvidfixed">
+    <video autoplay muted loop playsinline id="v3" data-src="assets/Scene 3.mp4"></video>
+    <div style="position:absolute;inset:0;background:rgba(7,16,10,.5);z-index:1;"></div>
+  </div>
+
+  <div class="vid-textbox" style="align-items:center;justify-content:center;text-align:center;">
+    <span class="vline vl-xl" id="s3bl0">Growth continued.</span>
+    <span class="vline vl-xl" id="s3bl1" style="font-style:italic;color:rgba(184,200,180,.65)">But ecology was left behind.</span>
+  </div>
+
+  <div class="vid-spacer" id="s3bstep0"></div>
+  <div class="vid-spacer" id="s3bstep1"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 4 — THE QUESTION
+═══════════════════════════════════════════ -->
+<div class="scene-track" style="height: 280vh" id="s4track">
+  <div class="scene-sticky" id="s4">
+
+    <!-- Pure black — no video -->
+    <div class="scene-video-placeholder active s4-bg" style="position:absolute;inset:0;">
+      <!-- Very faint contour lines only -->
+      <svg style="width:100%;height:100%;position:absolute;inset:0;opacity:.25;" viewBox="0 0 1440 900" fill="none">
+        <ellipse cx="720" cy="450" rx="420" ry="340" stroke="rgba(107,158,120,0.08)" stroke-width="1.5"/>
+        <ellipse cx="720" cy="450" rx="280" ry="226" stroke="rgba(107,158,120,0.07)" stroke-width="1.2"/>
+        <ellipse cx="720" cy="450" rx="160" ry="130" stroke="rgba(107,158,120,0.06)" stroke-width="1"/>
+        <!-- Faint glow at centre -->
+        <ellipse cx="720" cy="450" rx="60" ry="48" fill="rgba(42,95,122,0.08)" stroke="rgba(42,95,122,0.12)" stroke-width="1"/>
+      </svg>
+      <!-- Breathing glow -->
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:400px;height:320px;border-radius:50%;background:radial-gradient(ellipse,rgba(43,80,60,.2) 0%,transparent 70%);animation:waterpulse 6s ease-in-out infinite;"></div>
+    </div>
+
+    <div class="scene-text center">
+      <span class="line line-xxl line-italic" data-scene="4" data-step="0">What if Bengaluru</span>
+      <span class="line line-xxl line-italic line-sage" data-scene="4" data-step="1">grew differently?</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FUTURE ZONE WRAPPER (Spans Scenes 5, 6, and 7)
+═══════════════════════════════════════════ -->
+<div class="vid-section" id="future-zone">
+  <div class="vid-fixed">
+    <video autoplay muted loop playsinline data-src="assets/future.mp4"></video>
+  </div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 5 — THE VISION
+═══════════════════════════════════════════ -->
+<div class="vid-section" id="s5track">
+  <div class="vid-fixed" id="s5vidfixed">
+    <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(7,16,10,.82) 0%,rgba(7,16,10,.2) 60%,transparent 100%);z-index:1;"></div>
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 35% 55%,rgba(43,80,60,.3) 0%,transparent 60%),radial-gradient(ellipse at 72% 30%,rgba(42,95,122,.18) 0%,transparent 50%);z-index:0;"></div>
+  </div>
+  <div class="vid-textbox">
+    <span class="vline" id="s5l0">
+      <span class="vl-eyebrow" style="display:block;margin-bottom:1rem;">The Vision</span>
+      <span class="vl-xl" style="display:block;">Ecology and growth<br><em style="font-style:italic;color:var(--sage)">do not have to compete.</em></span>
+    </span>
+    <span class="vline vl-md" id="s5l1" style="color:rgba(184,200,180,.65);max-width:520px;margin-top:1.5rem;">Protected wetlands. Connected lake systems.<br>Ecological corridors woven into every neighbourhood.</span>
+  </div>
+  <div class="vid-spacer" id="s5step0"></div>
+  <div class="vid-spacer" id="s5step1"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PHILOSOPHY — glass cards over vision video
+═══════════════════════════════════════════ -->
+<div id="phil-track" class="vid-section">
+
+  <!-- Sticky behind everything (gradients only, video inherited from future-zone) -->
+  <div class="vid-fixed" id="phil-vidfixed">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 35% 55%,rgba(43,80,60,.3) 0%,transparent 60%),radial-gradient(ellipse at 72% 30%,rgba(42,95,122,.18) 0%,transparent 50%);z-index:0;"></div>
+    <div style="position:absolute;inset:0;background:rgba(7,16,10,.55);z-index:1;"></div>
+  </div>
+
+  <!-- Sticky UI layer — overlaid on video -->
+  <div id="phil-sticky">
+    <div id="phil-left">
+      <p class="phil-eyebrow"><span></span>Why we build the commons first</p>
+      <h2 class="phil-heading">The strands of<br><em>our philosophy.</em></h2>
+      <p class="phil-sub">A successful public space is not measured by acreage alone — but by how deeply it roots into human life and local culture.</p>
+      <div id="phil-dots">
+        <div class="phil-dot active" data-idx="0"></div>
+        <div class="phil-dot" data-idx="1"></div>
+        <div class="phil-dot" data-idx="2"></div>
+      </div>
+    </div>
+    <div id="phil-right">
+      <div id="phil-cards">
+        <div class="phil-card">
+          <span class="pc-num">01</span>
+          <h3 class="pc-title">Open design<br>reduces isolation.</h3>
+          <p class="pc-body">Standard urban expansion patterns often force homes to abut one another blindly, leaving residents disconnected from shared spaces and natural layers.</p>
+          <p class="pc-body" style="margin-top:12px">Building open-air plazas and neighbourhood commons <em style="color:rgba(184,200,180,.85);font-style:italic">first</em> establishes a canvas for organic, daily human interaction — directly reducing social isolation and building mutual trust.</p>
+        </div>
+        <div class="phil-card">
+          <span class="pc-num">02</span>
+          <h3 class="pc-title">Art and nature<br>restore the mind.</h3>
+          <p class="pc-body">Integrating open amphitheaters and craft spaces directly into restored forest buffers lets local culture evolve naturally.</p>
+          <p class="pc-body" style="margin-top:12px">Stepping into a quiet sanctuary filled with natural sounds — birds chirping, rain, rustling leaves — acts as a powerful, restorative shield against the mental fatigue of cramped city environments.</p>
+        </div>
+        <div class="phil-card">
+          <span class="pc-num">03</span>
+          <h3 class="pc-title">Shared space builds<br>collective will.</h3>
+          <p class="pc-body">When families regularly step out of private enclaves to interact within shared cultural spaces, they move away from individual escapism.</p>
+          <p class="pc-body" style="margin-top:12px">Surrounded by art and nature, people naturally begin to share diverse viewpoints, face challenges together, and co-create sustainable solutions as a collective.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spacers drive the card scroll (reduced to scroll faster) -->
+  <div class="phil-spacer"></div>
+  <div class="phil-spacer"></div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCENE 7 — FUTURE ECOLOGICAL NETWORK
+═══════════════════════════════════════════ -->
+<div class="scene-track" style="height: 350vh" id="s7track">
+  <div class="scene-sticky" id="s7">
+
+    <div class="scene-grad" style="background:linear-gradient(to top,rgba(7,16,10,.9) 0%,rgba(7,16,10,.2) 50%,transparent 100%)"></div>
+
+    <div class="scene-text center" style="justify-content:flex-end;text-align:center;padding-bottom:12vh;">
+      <span class="line line-xxl" data-scene="7" data-step="0">A future where cities</span>
+      <span class="line line-xxl line-italic line-sage" data-scene="7" data-step="1">still breathe.</span>
+      <span class="line-gap" style="height:3vh"></span>
+      <span class="line line-sm" data-scene="7" data-step="2" style="font-family:'Syne',sans-serif;font-size:.65rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(184,200,180,.3);">Reimagining Greater Bengaluru</span>
+      <span class="line line-sm" data-scene="7" data-step="3" style="font-family:'Fraunces',serif;font-style:italic;font-size:1rem;color:rgba(184,200,180,.22);">Goodearth Eco Futures</span>
+      <button class="line mf-btn" data-scene="7" data-step="4" onclick="openManifesto()">Read the Manifesto</button>
+    </div>
+  </div>
+</div>
+
+</div> <!-- End of future-zone -->
+
+<!-- ═══════════════════════════════════════
+     DEEP CONTENT — Baselines + Nodes + Form
+═══════════════════════════════════════ -->
+<div id="deep">
+
+
+  <!-- Nodes -->
+  <section class="nodes">
+    <div class="nodes-hdr">
+      <p class="ey rv">Proposed Nodes</p>
+      <h2 class="sh rv rv2">Three first interventions<br><em>in the growth corridor</em></h2>
+      <p class="sp rv rv3">Each site chosen for ecological value — wetlands, stream confluences, historic landscapes.</p>
+    </div>
+
+    <div class="nodes-grid">
+      <div class="node rv">
+        <img src="assets/hejjala_corridor.png" alt="Hejjala Corridor" class="node-img">
+        <div class="node-content">
+          <div class="nnum">01</div>
+          <span class="nbadge">Eco-Park Dedication</span>
+          <h3 class="nname">The Salumaradha Thimmakka Biodiversity Corridor</h3>
+          <p class="nloc">Hejjala Village · Bengaluru South</p>
+          <p class="nbody">Hejjala sits at the confluence of two prominent seasonal streams feeding the Arkavathi catchment. Three existing lakes — under pressure from encroachment and siltation — are at a critical juncture. We propose formally dedicating this corridor to Salumaradha Thimmakka, honouring her lifelong legacy.</p>
+          <a href="#" class="nlink dim">Hejjala Land Study — Coming Soon</a>
+        </div>
+      </div>
+
+      <div class="node rv rv2">
+        <img src="assets/chinnakuruchi_wetland.png" alt="Chinnakuruchi Wetland Sanctuary" class="node-img">
+        <div class="node-content">
+          <div class="nnum">02</div>
+          <span class="nbadge">Public Environmental Designation</span>
+          <h3 class="nname">The Chinnakuruchi Wetland Sanctuary</h3>
+          <p class="nloc">Chinnakuruchi Village · Bengaluru South</p>
+          <p class="nbody">This node centres on conserving the vulnerable wetlands that naturally weave around the agricultural patches of Chinnakuruchi's villages. Preserving these water bodies before outward urbanisation completely alters the landscape is essential to the region's climate resilience.</p>
+          <a href="map.html" class="nlink">Explore the Land Study</a>
+        </div>
+      </div>
+
+      <div class="node rv rv3">
+        <img src="assets/roerich_devaki_estate.png" alt="Roerich Estate" class="node-img">
+        <div class="node-content">
+          <div class="nnum">03</div>
+          <span class="nbadge">Integrated Biodiversity & Art Commons</span>
+          <h3 class="nname">The Roerich & Devaki Estate, Tataguni</h3>
+          <p class="nloc">Roerich & Devaki Estate · Kanakapura Road</p>
+          <p class="nbody">The state-acquired Tataguni Estate represents a priceless intersection of rich forestry, local heritage, and world-class art. A collaborative master plan to revive its deteriorating structures and depleting flora creates a cultural-ecological sanctuary that protects the southern frontier.</p>
+          <a href="#" class="nlink dim">In Discussion</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- Bottom — Form + Footer -->
+  <section class="bottom" id="bottom">
+    <div class="btm-grid">
+      <div class="rv">
+        <p class="ey">Connect with GoodEarth</p>
+        <h2 class="btm-h">Building with the<br><em>balance of the planet</em></h2>
+        <p class="btm-p">At GoodEarth, we address pressing issues in shelter, food, and water by co-creating sustainable solutions through community-centric initiatives — bringing the expertise and traditional skills necessary to align human spaces with the balance of the planet.</p>
+        
+        <div style="margin-top:24px;">
+          <h4 style="font-family:'Syne',sans-serif;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(184,200,180,0.4);margin-bottom:16px;">Get In Touch</h4>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <span style="font-size:14px;">✉</span>
+            <a href="mailto:ecoscaping@goodearth.org.in" style="font-family:'Syne',sans-serif;font-size:12.5px;color:rgba(184,200,180,0.8);text-decoration:none;">ecoscaping@goodearth.org.in</a>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <span style="font-size:14px;">☎</span>
+            <a href="tel:+919148542138" style="font-family:'Syne',sans-serif;font-size:12.5px;color:rgba(184,200,180,0.8);text-decoration:none;">+91 91485 42138</a>
+          </div>
+          
+          <div style="display:flex;gap:16px;margin-bottom:20px;">
+            <a href="#" style="color:var(--cream);opacity:0.6;font-size:16px;text-decoration:none;" title="Instagram">IG</a>
+            <a href="#" style="color:var(--cream);opacity:0.6;font-size:16px;text-decoration:none;" title="LinkedIn">IN</a>
+            <a href="#" style="color:var(--cream);opacity:0.6;font-size:16px;text-decoration:none;" title="Facebook">FB</a>
+          </div>
+
+          <address style="font-family:'Syne',sans-serif;font-size:12.5px;color:rgba(184,200,180,0.5);font-style:normal;line-height:1.6;margin-bottom:12px;">
+            No 9, 10 & 11, Tarana, GoodEarth Malhar,<br>
+            Kambipura, Kengeri, Bangalore – 560 074
+          </address>
+          <a href="#" style="font-family:'Syne',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);text-decoration:none;">Get directions →</a>
+        </div>
+      </div>
+      <div class="rv rv2">
+        <h3 style="font-family:'Fraunces',serif;font-size:2.4rem;font-weight:200;color:var(--cream);margin-bottom:8px;line-height:1.1;">Take a Stroll With Us</h3>
+        <p class="btm-p" style="margin-bottom:24px;color:rgba(184,200,180,0.6);">Schedule a visit and explore our landscapes together.</p>
+        
+        <form style="display:flex;flex-direction:column;gap:16px;">
+          <div class="fld-line">
+            <label>Name</label>
+            <input type="text">
+          </div>
+          <div class="fld-line">
+            <label>Phone Number</label>
+            <input type="tel">
+          </div>
+          <div class="fld-line">
+            <label>Email Address</label>
+            <input type="email">
+          </div>
+          <div class="fld-line" style="position:relative;">
+            <label>DD / MM / YYYY</label>
+            <input type="text">
+            <span style="position:absolute;right:0;bottom:10px;color:rgba(184,200,180,0.4);font-size:12px;">📅</span>
+          </div>
+          <button class="sub-pill" type="submit">Plan Your Visit</button>
+          <p style="font-family:'Syne',sans-serif;font-size:9px;color:rgba(184,200,180,0.4);margin-top:12px;">By submitting this form you allow us to contact you regarding your visit.</p>
+        </form>
+      </div>
+    </div>
+    <footer>
+      <div class="ft-brand">
+        <div class="fn">Reimagining Greater Bengaluru</div>
+        <div class="fs">A campaign by Goodearth Eco Futures</div>
+        <p>Designing the next generation of lung spaces in Bengaluru's growth corridor.</p>
+      </div>
+      <div class="ft-col">
+        <h4>The Story</h4>
+        <a href="#s1track">The Landscape</a>
+        <a href="#s2track">Water Systems</a>
+        <a href="#s5track">The Vision</a>
+        <a href="#s7track">The Network</a>
+      </div>
+      <div class="ft-col">
+        <h4>Proposed Nodes</h4>
+        <a href="map.html">Malgudi · Chinnakuruchi</a>
+        <a href="#">Hejjala · Coming Soon</a>
+        <a href="#">Tataguni · In Discussion</a>
+      </div>
+      <div class="ft-col">
+        <h4>Goodearth</h4>
+        <a href="#">About</a>
+        <a href="#">Malhar</a>
+        <a href="#">Eco Futures</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="ft-copy">
+        <span>© 2025 Goodearth Eco Futures Pvt. Ltd.</span>
+        <span>reimagininggreaterbengaluru.in</span>
+      </div>
+    </footer>
+  </section>
+
+</div><!-- /deep -->
+
+<!-- Manifesto Panel -->
+<div id="manifesto">
+  <button class="mf-close" onclick="closeManifesto()">Close ×</button>
+  <div class="mf-wrap">
+    <h2 class="mf-title">The Campaign<br>Manifesto</h2>
+    <div class="mf-body">
+      <p>The expanding south and west frontiers of Bengaluru offer a beautiful, active canvas to manifest a different vision. By learning from the land and aligning our new neighbourhoods with the earth's natural water paths and valleys, we can build a balanced city.</p>
+      <div class="mf-section">The Campaign Perspective</div>
+      <p>When we nurture existing wetlands, protect natural stream corridors, and integrate vibrant cultural commons, these spaces cease to be isolated patches. They seamlessly connect to form a resilient, city-wide ecological network that supports a healthy microclimate and brings long-term balance to our people, planet, and local economies.</p>
+      <p><em>"Humankind has not woven the web of life; we are but one single thread within it. Whatever we do to the web, we do to ourselves. All things are bound together."</em></p>
+      <div class="mf-section">For the City</div>
+      <p><strong>Every zone that systematically conserves wetlands, keeps stream paths open, and integrates cultural common spaces is no longer an isolated patch.</strong> It becomes a vital, defensive anchor in a city-wide ecological shield that does not yet exist — but absolutely could.</p>
+      <div class="mf-section">This is our mission.</div>
+      <p>To build the next generation of lung spaces in Bengaluru's growth corridor. Not cities plugged into grids. Cities grown into their landscapes.</p>
+      <p><strong>Goodearth Eco Futures</strong><br><em>Reimagining Greater Bengaluru · 2025</em></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Cursor ── */
+  const cur = document.getElementById('cur');
+  document.addEventListener('mousemove', e => { cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px'; });
+  document.querySelectorAll('a,button').forEach(el => {
+    el.addEventListener('mouseenter', () => cur.classList.add('big'));
+    el.addEventListener('mouseleave', () => cur.classList.remove('big'));
+  });
+
+  /* ── Nav ── */
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => nav.classList.toggle('solid', window.scrollY > 80), { passive: true });
+
+  /* ── Progress ── */
+  const prog = document.getElementById('prog');
+  function updateProg() {
+    const d = document.documentElement;
+    prog.style.width = (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
+  }
+  window.addEventListener('scroll', updateProg, { passive: true });
+
+  /* ── Scroll hint ── */
+  const shint = document.getElementById('shint');
+  window.addEventListener('scroll', () => { if (window.scrollY > 160) shint.classList.add('gone'); }, { passive: true });
+
+  /* ════════════════════════════════════════
+     CINEMATIC SCROLL ENGINE
+     Each scene-track creates scroll depth.
+     The scene-sticky stays pinned at top.
+     Text lines reveal/hide based on how far
+     we've scrolled through the track.
+  ════════════════════════════════════════ */
+
+  // Gather scene data
+  const scenes = [];
+  // scene-3b needs same treatment as other scenes
+  document.querySelectorAll('.scene-track').forEach(track => {
+    const sticky = track.querySelector('.scene-sticky');
+    const lines = Array.from(sticky.querySelectorAll('[data-scene]'));
+    const vid = sticky.querySelector('video');
+    const maps = Array.from(sticky.querySelectorAll('.scene-map'));
+    const fallback = sticky.querySelector('[id$="fallback"]');
+    scenes.push({ track, sticky, lines, vid, maps, fallback });
+  });
+
+  // Get track position relative to page
+  function trackBounds(track) {
+    const top = track.getBoundingClientRect().top + window.scrollY;
+    const h = track.offsetHeight;
+    return { top, bottom: top + h };
+  }
+
+  let lastScroll = -1;
+  function onScroll() {
+    const sy = window.scrollY;
+    if (Math.abs(sy - lastScroll) < 1) return;
+    lastScroll = sy;
+    updateProg();
+
+    scenes.forEach((scene, si) => {
+      const { top, bottom } = trackBounds(scene.track);
+      const trackH = bottom - top;
+      const vh = window.innerHeight;
+      const raw = (sy - top) / trackH;
+      const t = Math.max(0, Math.min(1, raw));
+
+      // In view = scrollY is within the track range
+      const inView = sy >= top - vh && sy <= bottom;
+
+      // ── VIDEO: show wrapper as soon as track enters view ──
+      if (scene.vid) {
+        const vidWrapper = scene.vid.closest('.scene-video');
+        if (vidWrapper) {
+          if (inView) {
+            vidWrapper.classList.add('active');
+            if (scene.vid.paused) scene.vid.play().catch(() => {});
+          } else {
+            vidWrapper.classList.remove('active');
+            if (scene.vid && !scene.vid.paused) scene.vid.pause();
+          }
+        }
+      }
+
+      if (scene.fallback) {
+        scene.fallback.style.opacity = inView ? '1' : '0';
+        scene.fallback.style.transition = 'opacity 1.4s ease';
+      }
+
+      // ── MAPS: show mid-scene ──
+      scene.maps.forEach(m => m.classList.toggle('show', t > 0.1 && t < 0.95));
+
+      // ── TEXT LINES: reveal one by one, stay visible until scene ends ──
+      const nLines = scene.lines.length;
+      const isLastScene = si === scenes.length - 1;
+
+      scene.lines.forEach((line, li) => {
+        // Spread reveals evenly across first 80% of the track
+        const showAt = (li / nLines) * 0.75;
+
+        if (t >= showAt) {
+          line.classList.add('show');
+          line.classList.remove('gone');
+        } else {
+          line.classList.remove('show', 'gone');
+        }
+
+        // If scene is over (we've scrolled past), fade all out
+        if (t >= 0.98 && !isLastScene) {
+          line.classList.remove('show');
+          line.classList.add('gone');
+        }
+      });
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Lazy load videos when near viewport
+  const vidObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const v = e.target.querySelector('video');
+      if (v && !v.src && v.dataset.src) { v.src = v.dataset.src; v.load(); }
+    });
+  }, { rootMargin: '200px' });
+  document.querySelectorAll('.scene-sticky').forEach(s => vidObs.observe(s));
+
+  // Deep content reveal
+  const rvObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.rv').forEach(el => rvObs.observe(el));
+
+  // Init
+  onScroll();
+
+
+  /* ════════════════════════════════════════
+     FIXED-VIDEO SECTION — scroll-driven line reveal
+     Video fades in when section enters viewport.
+     Each spacer crossing reveals the next line.
+     Lines accumulate — never hide.
+  ════════════════════════════════════════ */
+
+  // Video: fade in/out when section enters/leaves
+  const vidSecObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const vf = e.target.querySelector('.vid-fixed');
+      if (!vf) return;
+      const vid = vf.querySelector('video');
+      if (e.isIntersecting) {
+        vf.classList.add('active');
+        if (vid) {
+          if (!vid.src && vid.dataset.src) { vid.src = vid.dataset.src; vid.load(); }
+          if (vid.paused) vid.play().catch(() => {});
+        }
+      } else {
+        vf.classList.remove('active');
+        if (vid && !vid.paused) vid.pause();
+      }
+    });
+  }, { threshold: 0, rootMargin: '200px 0px' });
+  document.querySelectorAll('.vid-section').forEach(s => vidSecObs.observe(s));
+
+  // Each spacer step reveals corresponding line
+  // Map: spacer id → line id
+  const stepMap = {
+    's2step0': 's2l0',
+    's2step1': 's2l1',
+    's2step2': 's2l2',
+    's3bstep0': 's3bl0',
+    's3bstep1': 's3bl1',
+    's5step0': 's5l0',
+    's5step1': 's5l1',
+  };
+
+  // Track scroll direction
+  let lastSy = window.scrollY;
+  window.addEventListener('scroll', () => { lastSy = window.scrollY; }, { passive: true });
+
+  const stepObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const lineId = stepMap[e.target.id];
+      if (!lineId) return;
+      const line = document.getElementById(lineId);
+      if (!line) return;
+
+      if (e.isIntersecting) {
+        // Scrolling down — show this line
+        line.classList.add('show');
+      } else {
+        // Scrolling up past this spacer — hide this line
+        if (e.boundingClientRect.top > 0) {
+          line.classList.remove('show');
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  Object.keys(stepMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) stepObs.observe(el);
+  });
+
+
+  /* ════════════════════════════════════════
+     PHILOSOPHY — horizontal scroll drive
+  ════════════════════════════════════════ */
+
+
+  
+
+
+  /* ════ PHILOSOPHY GLASS CARDS ════ */
+  (function() {
+    const track = document.getElementById('phil-track');
+    const cards = document.getElementById('phil-cards');
+    const dots  = document.querySelectorAll('.phil-dot');
+    const vf    = document.getElementById('phil-vidfixed');
+    if (!track || !cards) return;
+
+    function update() {
+      const sy  = window.scrollY;
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      const h   = track.offsetHeight;
+      const vh  = window.innerHeight;
+      const t   = Math.max(0, Math.min(1, (sy - top) / (h - vh)));
+
+      // Show video when in section
+      if (vf) vf.classList.toggle('active', sy >= top - vh && sy <= top + h);
+
+      // Slide cards
+      const cardW = (cards.children[0] ? cards.children[0].offsetWidth : 460) + 24;
+      cards.style.transform = 'translateX(-' + (t * cardW * 2) + 'px)';
+
+      // Dots
+      const idx = Math.min(2, Math.floor(t * 3 + 0.05));
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+  /* ── Manifesto ── */
+  function openManifesto() {
+    document.getElementById('manifesto').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeManifesto() {
+    document.getElementById('manifesto').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeManifesto(); });
+</script>
+</body>
+</html>

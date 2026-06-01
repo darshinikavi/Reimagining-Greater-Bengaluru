@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goodearth Malgudi — Land Study</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-kmz@latest/dist/leaflet-kmz.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; overflow: hidden; background: #0f1a12; }
+
+    /* ══════════════════════════════════
+       HEADER
+    ══════════════════════════════════ */
+    #header {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 400; background: #1B3A2D;
+      display: flex; flex-direction: column;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+    }
+    #header-top {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; padding: 14px 28px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    #header-left { display: flex; align-items: center; }
+    #header-left img { height: 24px; width: auto; filter: brightness(0) invert(1); opacity: 0.88; }
+    .ge-text { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.88); }
+    #header-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    #header-center img.malgudi-img { height: 48px; width: auto; filter: brightness(0) invert(1); opacity: 0.97; }
+    .malgudi-text { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 300; color: #fff; letter-spacing: 0.12em; font-style: italic; }
+    #header-right-top { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+    .location-label { font-family: 'Syne', sans-serif; font-size: 0.48rem; letter-spacing: 0.38em; text-transform: uppercase; color: rgba(255,255,255,0.28); }
+    /* Expand toggle button */
+    #expand-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px; padding: 5px 10px; cursor: pointer;
+      font-family: 'Syne', sans-serif; font-size: 0.58rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.6); transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #expand-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    #expand-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+    #header-nav { display: flex; align-items: center; justify-content: center; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.45); text-decoration: none; padding: 8px 20px; white-space: nowrap; font-weight: 500; transition: color 0.2s; position: relative; }
+    .nav-link::after { content: ''; position: absolute; bottom: 0; left: 20px; right: 20px; height: 1.5px; background: rgba(255,255,255,0.75); transform: scaleX(0); transition: transform 0.2s; }
+    .nav-link:hover { color: rgba(255,255,255,0.85); }
+    .nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); }
+    .nav-link.active { color: #fff; }
+    .nav-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.12); }
+
+    /* ══════════════════════════════════
+       MAIN LAYOUT — split screen
+    ══════════════════════════════════ */
+    #main {
+      position: fixed;
+      top: var(--header-h, 112px);
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      transition: all 0.4s ease;
+    }
+
+    /* MAP SIDE */
+    #map-side {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      transition: flex 0.4s ease;
+    }
+    #map { width: 100%; height: 100%; }
+
+    /* EXPANDED = full map, panel hidden */
+    body.expanded #info-side { width: 0; overflow: hidden; opacity: 0; }
+    body.expanded #map-side { flex: 1; }
+
+    /* INFO PANEL SIDE */
+    #info-side {
+      width: 360px;
+      flex-shrink: 0;
+      background: #0f1a12;
+      border-left: 1px solid rgba(193,208,184,0.1);
+      overflow-y: auto;
+      transition: width 0.4s ease, opacity 0.3s ease;
+      opacity: 1;
+    }
+    #info-side::-webkit-scrollbar { width: 4px; }
+    #info-side::-webkit-scrollbar-thumb { background: rgba(193,208,184,0.2); border-radius: 4px; }
+
+    /* ══════════════════════════════════
+       INFO PANEL SECTIONS
+    ══════════════════════════════════ */
+    .info-section {
+      border-bottom: 1px solid rgba(193,208,184,0.08);
+    }
+    .info-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px 12px;
+      cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .info-section-head:hover { background: rgba(193,208,184,0.04); }
+    .info-section-head.open { background: rgba(193,208,184,0.06); }
+    .info-section-title {
+      font-family: 'Syne', sans-serif; font-size: 11px;
+      font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #C1D0B8;
+    }
+    .info-section-arrow {
+      font-size: 10px; color: rgba(193,208,184,0.4);
+      transition: transform 0.22s;
+    }
+    .info-section-head.open .info-section-arrow { transform: rotate(180deg); }
+    .info-section-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .info-section-body.open { max-height: 800px; }
+    .info-inner { padding: 0 20px 18px; }
+
+    /* Section content styles */
+    .info-lead {
+      font-size: 12.5px; line-height: 1.75;
+      color: rgba(193,208,184,0.65);
+      margin-bottom: 14px;
+    }
+
+    /* Elevation gradient */
+    .elev-bar {
+      display: flex; gap: 12px; align-items: stretch;
+      margin: 12px 0;
+    }
+    .elev-gradient {
+      width: 20px; border-radius: 4px;
+      background: linear-gradient(to bottom, #d73027, #f46d43, #fdae61, #fee090, #e0f3f8, #74add1, #4575b4);
+      flex-shrink: 0;
+    }
+    .elev-labels {
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+    }
+    .elev-label {
+      font-family: 'Syne', sans-serif; font-size: 9px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(193,208,184,0.5);
+    }
+    .elev-val {
+      font-family: 'Fraunces', serif; font-size: 1.5rem;
+      font-weight: 300; color: #F5F0E8; line-height: 1;
+    }
+    .elev-val span { font-size: 0.7rem; font-family: 'Syne', sans-serif; color: rgba(193,208,184,0.5); }
+
+    /* Stat rows */
+    .stat-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 7px 0; border-bottom: 1px solid rgba(193,208,184,0.07);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-family: 'Syne', sans-serif; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(193,208,184,0.45); }
+    .stat-val { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; color: #F5F0E8; }
+    .stat-unit { font-family: 'Syne', sans-serif; font-size: 9px; color: rgba(193,208,184,0.4); margin-left: 3px; }
+
+    /* Wind rose simple */
+    .wind-rose {
+      display: flex; align-items: center; justify-content: center;
+      margin: 12px 0;
+    }
+    .wind-circle {
+      width: 90px; height: 90px; border-radius: 50%;
+      border: 1.5px solid rgba(193,208,184,0.2);
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .wind-arrow {
+      width: 2px; height: 36px; background: #C1D0B8;
+      border-radius: 2px; transform: rotate(-45deg);
+      transform-origin: bottom center; position: absolute; bottom: 50%;
+    }
+    .wind-dir { font-family: 'Fraunces', serif; font-size: 1.1rem; color: #F5F0E8; }
+    .wind-labels {
+      margin-left: 16px; display: flex; flex-direction: column; gap: 4px;
+    }
+
+    /* Soil layers */
+    .soil-stack { display: flex; flex-direction: column; gap: 2px; margin: 10px 0; border-radius: 6px; overflow: hidden; }
+    .soil-layer {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+    }
+    .soil-swatch { width: 28px; height: 20px; border-radius: 3px; flex-shrink: 0; }
+    .soil-name { font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: rgba(245,240,232,0.85); }
+    .soil-depth { font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: 0.06em; color: rgba(193,208,184,0.45); margin-left: auto; }
+
+    /* Species grid */
+    .species-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px; margin: 10px 0;
+    }
+    .species-card {
+      background: rgba(193,208,184,0.06);
+      border: 1px solid rgba(193,208,184,0.1);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .species-icon { font-size: 1.3rem; margin-bottom: 4px; display: block; }
+    .species-name { font-family: 'DM Sans', sans-serif; font-size: 11px; color: rgba(245,240,232,0.85); font-weight: 500; }
+    .species-sci { font-family: 'Fraunces', serif; font-size: 10px; font-style: italic; color: rgba(193,208,184,0.45); }
+
+    /* Water flow diagram */
+    .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 10px 0; }
+    .flow-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 10px 0; border-bottom: 1px solid rgba(193,208,184,0.07);
+      position: relative;
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .flow-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(107,158,181,0.2); border: 1px solid rgba(107,158,181,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 600;
+      color: #6B9EB5; flex-shrink: 0; margin-top: 1px;
+    }
+    .flow-text { font-size: 12px; line-height: 1.65; color: rgba(193,208,184,0.65); }
+    .flow-text strong { color: rgba(193,208,184,0.9); font-weight: 500; }
+
+    /* Tag chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+    .chip {
+      font-family: 'Syne', sans-serif; font-size: 9px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 20px;
+      border: 1px solid rgba(193,208,184,0.2);
+      color: rgba(193,208,184,0.65); background: rgba(193,208,184,0.06);
+    }
+
+    /* ══════════════════════════════════
+       MAP OVERLAYS (layer panel etc)
+    ══════════════════════════════════ */
+    /* ── HAMBURGER BUTTON ── */
+#panel-toggle{
+  position:absolute;top:16px;left:16px;z-index:900;
+  width:40px;height:40px;
+  background:#1B3A2D;
+  border:none;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  transition:background 0.2s;
+  padding:0;
+}
+#panel-toggle:hover{background:#264d3b;}
+.ham-icon{position:relative;width:18px;height:14px;flex-shrink:0;}
+.ham-bar{
+  position:absolute;left:0;right:0;height:2px;
+  background:#fff;border-radius:2px;
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease;
+}
+.ham-bar:nth-child(1){top:0;}
+.ham-bar:nth-child(2){top:6px;}
+.ham-bar:nth-child(3){top:12px;}
+/* Open = X state */
+#panel-toggle.open .ham-bar:nth-child(1){transform:translateY(6px) rotate(45deg);}
+#panel-toggle.open .ham-bar:nth-child(2){opacity:0;transform:scaleX(0);}
+#panel-toggle.open .ham-bar:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+
+/* ── LAYER PANEL ── */
+#layer-panel{
+  position:absolute;top:16px;left:64px;z-index:800;
+  width:250px;
+  background:#ffffff;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,0.1);
+  box-shadow:0 4px 16px rgba(0,0,0,0.15);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - 100px);
+  transform-origin:top left;
+  transform:scale(1);opacity:1;
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease;
+  overflow:hidden;
+}
+#layer-panel.hidden{
+  transform:translateX(-300px) scale(0.94);
+  opacity:0;pointer-events:none;
+}
+.panel-head{
+  padding:12px 14px 10px;
+  background:#F4FBF0;
+  border-bottom:1px solid #E4F0DC;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.panel-title{
+  font-family:var(--font-heading, 'Syne', sans-serif);
+  font-size:11px;font-weight:700;
+  color:#3B6D2A;letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+.panel-btns{display:flex;gap:5px;}
+.btn-all{
+  background:none;border:none;
+  font-size:9.5px;font-weight:600;text-transform:uppercase;
+  color:#5B9E48;cursor:pointer;
+  transition:color 0.15s;
+}
+.btn-all:hover{color:#3B6D2A;}
+.panel-scroll{overflow-y:auto;flex:1;padding:6px 0;}
+.panel-scroll::-webkit-scrollbar{width:3px;}
+.panel-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px;}
+.cat-header{
+  padding:10px 14px;
+  background:#F4FBF0;
+  border-bottom:1px solid #E4F0DC;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;user-select:none;
+  transition:background 0.2s;
+}
+.cat-header:first-child{border-top:none;}
+.cat-header:hover{background:#EAF5E2;}
+.cat-label{
+  font-family:'Syne', sans-serif;
+  font-size:10px;font-weight:600;letter-spacing:0.12em;
+  text-transform:uppercase;color:#3B6D2A;
+}
+.cat-arrow{
+  font-size:10px;color:#5B9E48;
+  transition:transform 0.25s;
+}
+.cat-arrow.open{transform:rotate(180deg);}
+.cat-rows{overflow:hidden;transition:max-height 0.28s cubic-bezier(0.4,0,0.2,1);}
+.layer-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;
+  border-bottom:1px solid #f5f5f5;
+  transition:background 0.15s;
+}
+.layer-row:hover{background:#f8fef6;}
+.swatch{
+  width:11px;height:11px;border-radius:2px;flex-shrink:0;
+  border:1px solid rgba(255,255,255,0.12);
+}
+.layer-lbl{
+  font-family:'DM Sans', sans-serif;
+  font-size:12px;color:#1a1a1a;
+  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* Toggle pill */
+.pill{
+  position:relative;display:inline-block;
+  width:28px;height:16px;flex-shrink:0;
+  cursor:pointer;
+}
+.pill input{opacity:0;width:0;height:0;position:absolute;}
+.pill-track{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:#ddd;border-radius:10px;
+  transition:0.2s;
+}
+.pill-track::before{
+  content:'';position:absolute;
+  height:12px;width:12px;
+  left:2px;bottom:2px;
+  background:#fff;border-radius:50%;
+  transition:0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.pill input:checked+.pill-track{background:#4CAF50;}
+.pill input:checked+.pill-track::before{
+  content:'';position:absolute;
+  height:12px;width:12px;
+  left:2px;bottom:2px;
+  background:#fff;border-radius:50%;
+  transition:0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+
+/*
+
+    /* Base map trigger */
+    /* Base map trigger */
+    #basemap-trigger {
+      position: absolute; bottom: 24px; left: 16px;
+      z-index: 1000; width: 48px; height: 48px;
+      border-radius: 8px; border: 2.5px solid #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      cursor: pointer; overflow: hidden; transition: transform 0.15s;
+    }
+    #basemap-trigger:hover { transform: scale(1.05); }
+    #basemap-trigger img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    #basemap-panel {
+      position: absolute; bottom: 24px; left: 72px;
+      z-index: 1000; background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.08);
+      overflow: hidden; width: 210px; display: none;
+    }
+    #basemap-panel.open { display: block; }
+    #basemap-head { padding: 10px 14px 8px; background: #F4FBF0; border-bottom: 1px solid #E4F0DC; display: flex; align-items: center; justify-content: space-between; }
+    .basemap-title { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #3B6D2A; }
+    #active-base-name { font-family: 'Syne', sans-serif; font-size: 10px; color: #5B9E48; font-weight: 500; }
+    #basemap-options { padding: 8px 10px 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .bm-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex: 1; min-width: 40px; }
+    .bm-thumb { width: 100%; aspect-ratio: 1; border-radius: 6px; border: 2.5px solid transparent; overflow: hidden; transition: border-color 0.15s; background: #ddd; }
+    .bm-thumb img { display: block; object-fit: cover; width: 100%; height: 100%; }
+    .bm-item.active .bm-thumb { border-color: #1a73e8; }
+    .bm-name { font-family: 'DM Sans', sans-serif; font-size: 10px; color: #555; white-space: nowrap; }
+    .bm-item.active .bm-name { color: #1a73e8; font-weight: 500; }
+
+    /* Popup */
+    #popup {
+      z-index: 1000;
+      position: absolute; bottom: 80px; left: 16px;
+      z-index: 202; width: 240px; background: #fff;
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none;
+    }
+    #popup.show { display: block; }
+    #popup-header { padding: 10px 14px; background: #1B3A2D; display: flex; align-items: center; justify-content: space-between; }
+    #popup-name { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #C1D0B8; }
+    #popup-x { background: none; border: none; font-size: 15px; color: rgba(255,255,255,0.4); cursor: pointer; }
+    #popup-x:hover { color: #fff; }
+    #popup-body { padding: 12px 14px 14px; }
+    .popup-stat { display: flex; align-items: baseline; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
+    .popup-stat:last-child { border-bottom: none; }
+    .popup-stat-label { font-family: 'Syne', sans-serif; font-size: 9.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #999; }
+    .popup-stat-value { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 400; color: #1B3A2D; text-align: right; }
+    .popup-raw { font-family: 'DM Sans', sans-serif; font-size: 11px; color: #aaa; line-height: 1.7; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f5f5f5; }
+    .popup-raw strong { color: #666; }
+
+    /* Leaflet control overrides */
+    .leaflet-control-zoom { border-radius: 8px !important; border: none !important; box-shadow: 0 1px 4px rgba(0,0,0,0.15) !important; overflow: hidden; }
+    .leaflet-control-zoom a { width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 16px !important; color: #333 !important; }
+    .leaflet-control-zoom a:hover { background: #f5f5f5 !important; }
+    .leaflet-control-attribution { font-size: 10px !important; }
+    .leaflet-container { background: #1a1a1a; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-top">
+    <div id="header-left">
+      <img src="assets/white horizontal.png" alt="GoodEarth"
+           onerror="this.style.display='none';document.getElementById('ge-fb').style.display='block'">
+      <span class="ge-text" id="ge-fb" style="display:none">GoodEarth</span>
+    </div>
+    <div id="header-center">
+      <img class="malgudi-img" src="assets/malgudi.svg?v=2" alt="Malgudi"
+           onerror="this.style.display='none';document.getElementById('mal-fb').style.display='block'">
+      <span class="malgudi-text" id="mal-fb" style="display:none">Malgudi</span>
+    </div>
+    <div id="header-right-top">
+      <span class="location-label">Chinnakuruchi</span>
+      <button id="expand-btn" onclick="toggleExpand()">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+        <span id="expand-label">Expand Map</span>
+      </button>
+    </div>
+  </div>
+  <div id="header-nav">
+    <a class="nav-link" href="#">Story of the Land</a>
+    <div class="nav-sep"></div>
+    <a class="nav-link active" href="#">Land Study</a>
+    <div class="nav-sep"></div>
+    <a class="nav-link" href="#">Design Journey</a>
+  </div>
+</div>
+
+<!-- MAIN SPLIT LAYOUT -->
+<div id="main">
+
+  <!-- MAP SIDE -->
+  <div id="map-side">
+    <div id="map"></div>
+
+    <!-- HAMBURGER BUTTON -->
+    <button id="panel-toggle" class="" onclick="togglePanel()" title="Toggle Layers">
+      <div class="ham-icon">
+        <div class="ham-bar"></div>
+        <div class="ham-bar"></div>
+        <div class="ham-bar"></div>
+      </div>
+    </button>
+
+    <!-- LAYER PANEL -->
+    <div id="layer-panel" class="hidden">
+      <div class="panel-head">
+        <span class="panel-title">Site Layers</span>
+        <div class="panel-btns">
+          <button class="btn-all" onclick="toggleAll(false)">Hide All</button>
+          <button class="btn-all" onclick="toggleAll(true)">Show All</button>
+        </div>
+      </div>
+      <div class="panel-scroll" id="layer-list"></div>
+    </div>
+
+    <!-- Base map -->
+    <div id="basemap-trigger" onclick="toggleBasemap()" title="Switch base map">
+      <img id="basemap-trigger-img"
+        src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/13/3354/6434" style="border-radius:4px;width:48px;height:48px;object-fit:cover"
+        alt="Base map">
+    </div>
+    <div id="basemap-panel">
+      <div id="basemap-head">
+        <span class="basemap-title">Base Map</span>
+        <span id="active-base-name">Satellite</span>
+      </div>
+      <div id="basemap-options">
+        <div class="bm-item active" id="bm-satellite" onclick="setBase('satellite','Satellite')">
+          <div class="bm-thumb"><img src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/13/3354/6434" style="border-radius:4px;width:48px;height:48px;object-fit:cover" alt=""></div>
+          <span class="bm-name">Satellite</span>
+        </div>
+        <div class="bm-item" id="bm-streets" onclick="setBase('streets','Map')">
+          <div class="bm-thumb"><img src="https://tile.openstreetmap.org/13/6434/3354.png" alt=""></div>
+          <span class="bm-name">Map</span>
+        </div>
+        <div class="bm-item" id="bm-outdoors" onclick="setBase('outdoors','Terrain')">
+          <div class="bm-thumb"><img src="https://tile.opentopomap.org/13/6434/3354.png" alt=""></div>
+          <span class="bm-name">Terrain</span>
+        </div>
+        <div class="bm-item" id="bm-dark" onclick="setBase('dark','Dark')">
+          <div class="bm-thumb"><img src="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/13/6434/3354.png" alt=""></div>
+          <span class="bm-name">Dark</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature popup -->
+    <div id="popup">
+      <div id="popup-header">
+        <span id="popup-name">—</span>
+        <button id="popup-x" onclick="closePopup()">×</button>
+      </div>
+      <div id="popup-body"></div>
+    </div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div id="info-side">
+
+    <!-- 1. GEOLOGY -->
+    <div class="info-section">
+      <div class="info-section-head" onclick="toggleSection(this, 'layer-geology')">
+        <span class="info-section-title">🪨 Geology</span>
+        <span class="info-section-arrow">▾</span>
+      </div>
+      <div class="info-section-body">
+        <div class="info-inner">
+          <p class="info-lead"><strong>Chinnakurchi</strong></p>
+          <div class="stat-row">
+            <span class="stat-label">Type</span>
+            <span class="stat-val" style="font-size: 1rem;">Peninsular Gneissic Complex-II</span>
+          </div>
+          <p class="info-lead" style="margin-top:12px;margin-bottom:0">▪ Provides a strong, stable foundation and supports groundwater storage.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. GEOMORPHOLOGY -->
+    <div class="info-section">
+      <div class="info-section-head" onclick="toggleSection(this, 'layer-geomorphology')">
+        <span class="info-section-title">⛰ Geomorphology</span>
+        <span class="info-section-arrow">▾</span>
+      </div>
+      <div class="info-section-body">
+        <div class="info-inner">
+          <div class="stat-row">
+            <span class="stat-label">Landforms</span>
+            <span class="stat-val" style="font-size: 1rem;">Pediment, Pediplain, Valley Fill</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. LITHOLOGY -->
+    <div class="info-section">
+      <div class="info-section-head" onclick="toggleSection(this, 'layer-lithology')">
+        <span class="info-section-title">⛏ Lithology</span>
+        <span class="info-section-arrow">▾</span>
+      </div>
+      <div class="info-section-body">
+        <div class="info-inner">
+          <div class="stat-row">
+            <span class="stat-label">Type</span>
+            <span class="stat-val" style="font-size: 1rem;">Grey Hornblende Biotite Gneiss</span>
+          </div>
+          <p class="info-lead" style="margin-top:12px;margin-bottom:0">▪ Can be used as a strong foundation rock, construction material.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. WATERBODIES -->
+    <div class="info-section">
+      <div class="info-section-head" onclick="toggleSection(this)">
+        <span class="info-section-title">💧 Waterbodies</span>
+        <span class="info-section-arrow">▾</span>
+      </div>
+      <div class="info-section-body">
+        <div class="info-inner">
+          <p class="info-lead">Chinnakurchi village, located in the Kengeri Hobli area of Bengaluru South, sits at an elevation of approximately 878 meters to 890 meters (2,880 feet to 2,920 feet) above mean sea level.</p>
+          
+          <div style="display:flex; border:1px solid rgba(193,208,184,0.2); border-radius:4px; margin:12px 0;">
+            <div style="flex:1; text-align:center; padding:8px 4px; border-right:1px solid rgba(193,208,184,0.2);">
+              <div style="font-size:8px; text-transform:uppercase; color:rgba(193,208,184,0.65);">Existing Tanks</div>
+              <div style="font-size:1.2rem; font-weight:bold; color:#4CAF50; margin-top:4px;">3</div>
+            </div>
+            <div style="flex:1; text-align:center; padding:8px 4px; border-right:1px solid rgba(193,208,184,0.2);">
+              <div style="font-size:8px; text-transform:uppercase; color:rgba(193,208,184,0.65);">Lost Tanks</div>
+              <div style="font-size:1.2rem; font-weight:bold; color:#F44336; margin-top:4px;">1</div>
+            </div>
+            <div style="flex:1; text-align:center; padding:8px 4px;">
+              <div style="font-size:8px; text-transform:uppercase; color:rgba(193,208,184,0.65);">Total Count</div>
+              <div style="font-size:1.2rem; font-weight:bold; color:#F5F0E8; margin-top:4px;">4</div>
+            </div>
+          </div>
+
+          <p class="info-lead">Over the last century, the waterbodies in the city have been built over - they have reduced in size with most of them disappearing completely. This should be prevented in the extending Bengaluru.</p>
+
+          <p class="info-lead" style="margin-top:12px; margin-bottom:6px;">Categories of waterbodies identified in the village through GIS mapping and BMICAPA maps:</p>
+          <ol style="color:rgba(193,208,184,0.85); font-size:11px; padding-left:16px; margin-top:0; line-height:1.5;">
+            <li style="margin-bottom:6px;"><strong>Lake:</strong> seasonal, water bodies used for domestic activities and recharging rainwater. Often between 5-10 acres.</li>
+            <li><strong>Tank:</strong> Natural or Man-made tanks larger than 3 acres. Historically built for irrigation.</li>
+          </ol>
+
+          <p class="info-lead" style="margin-top:12px; margin-bottom:6px;">We have 3 functioning water bodies in the Chinnakuruchi village:</p>
+          <ul style="color:rgba(193,208,184,0.85); font-size:11px; padding-left:16px; margin-top:0; line-height:1.5;">
+            <li><strong>Waterbody 1</strong> - receiving a catchment of 760 Acres</li>
+            <li><strong>Waterbody 2</strong> - receiving a catchment of 180 Acres</li>
+            <li><strong>Waterbody 3</strong> - receiving a catchment of 48 Acres</li>
+          </ul>
+
+          <button onclick="zoomToWaterbodies()" style="width:100%; margin-top:10px; padding:8px; background:rgba(107,158,181,0.2); border:1px solid rgba(107,158,181,0.4); color:#6B9EB5; border-radius:4px; cursor:pointer; font-family:'Syne',sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; transition: background 0.2s;" onmouseover="this.style.background='rgba(107,158,181,0.3)'" onmouseout="this.style.background='rgba(107,158,181,0.2)'">View Catchment Areas</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end info-side -->
+
+</div><!-- end main -->
+
+<script>
+  /* ══════════════════════════════════════════════════════════
+     LEAFLET MAP — ESRI Satellite + KML data layers
+     No Mapbox dependency whatsoever
+  ══════════════════════════════════════════════════════════ */
+
+  function setHeaderHeight() {
+    const h = document.getElementById('header').offsetHeight;
+    document.getElementById('main').style.top = h + 'px';
+  }
+  setHeaderHeight();
+  window.addEventListener('resize', setHeaderHeight);
+
+  /* ── Base tile layers ── */
+  const BASES = {
+    satellite: L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 20, attribution: '© Esri, Maxar, Earthstar Geographics' }
+    ),
+    streets: L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 20, attribution: '© OpenStreetMap contributors' }
+    ),
+    outdoors: L.tileLayer(
+      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      { maxZoom: 17, attribution: '© OpenTopoMap' }
+    ),
+    dark: L.tileLayer(
+      'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+      { maxZoom: 20, attribution: '© Stadia Maps' }
+    ),
+  };
+
+  const map = L.map('map', {
+    center: [12.8234, 77.4673],
+    zoom: 14,
+    zoomControl: false,
+  });
+
+  map.createPane('geologyPane');
+  map.getPane('geologyPane').style.zIndex = 390;
+
+  BASES.satellite.addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  let currentBase = 'satellite';
+  let allVisible  = true;
+  let panelOpen   = false;
+  let basemapOpen = false;
+  let isExpanded  = false;
+
+  function resizeMap() { setTimeout(() => map.invalidateSize(), 420); }
+
+  /* ══════════════════════════════════════════════════════════
+     LAYER DEFINITIONS
+     Each entry maps a display name to a Leaflet layer group
+     All will be populated from KML data
+  ══════════════════════════════════════════════════════════ */
+  const LAYER_DEFS = [
+    // Geology
+    { id:'layer-geology',          label:'Geology',               group:null, colour:'#9E9E9E', style:{ pane:'geologyPane', color:'#9E9E9E', weight:0, fillOpacity:1, fillColor:'#9E9E9E' } },
+    { id:'layer-geomorphology',    label:'Geomorphology',         group:null, colour:'#795548', style:{ pane:'geologyPane', color:'#795548', weight:0, fillOpacity:1, fillColor:'#795548' } },
+    { id:'layer-lithology',        label:'Lithology',             group:null, colour:'#607D8B', style:{ pane:'geologyPane', color:'#607D8B', weight:0, fillOpacity:1, fillColor:'#607D8B' } },
+    // Topography
+    { id:'layer-contour',          label:'Contour',               group:null, colour:'#8c6b4a', style:{ color:'#8c6b4a', weight:1, opacity:0.6, fill:false } },
+    { id:'layer-dem',              label:'DEM Map',               group:null, colour:'#c9a96e', style:{ color:'#c9a96e', weight:1, fillColor:'#c9a96e', fillOpacity:0.5, opacity:1.0 } },
+    // Boundaries
+    { id:'layer-land-boundary',    label:'Land Boundary',         group:null, colour:'#1a6fd4', style:{ color:'#1a6fd4', weight:2.5, opacity:1, fill:false } },
+    { id:'layer-total-boundary',   label:'Total Boundary',        group:null, colour:'#ff6600', style:{ color:'#ff6600', weight:2.5, opacity:1, fill:false } },
+    { id:'layer-survey-boundary',  label:'Survey Boundary',       group:null, colour:'#000000', style:{ color:'#000000', weight:0.2, opacity:1, fill:false } },
+    { id:'layer-ck-village',       label:'Chinnakuruchi Village', group:null, colour:'#5A0010', style:{ color:'#5A0010', weight:2, opacity:0.85, dashArray:'6 3', fill:false } },
+    { id:'layer-bm-village',       label:'BM Kaval Village',      group:null, colour:'#5A0010', style:{ color:'#5A0010', weight:2, opacity:0.85, dashArray:'6 3', fill:false } },
+    // Ecological
+    { id:'layer-watershed',        label:'Watershed',             group:null, colour:'#9C27B0', style:{ color:'#9C27B0', weight:2, dashArray:'4 4', opacity:0.8, fill:false } },
+    { id:'layer-wetlands',         label:'Wetlands',              group:null, colour:'#5b9bd5', style:{ color:'#5b9bd5', weight:1.2, opacity:0.9, dashArray:'4 3', fillColor:'#5b9bd5', fillOpacity:0.60 } },
+    { id:'layer-agriculture',      label:'Agriculture',           group:null, colour:'#6b7c2e', style:{ color:'#6b7c2e', weight:1.2, opacity:0.9, dashArray:'4 3', fillColor:'#6b7c2e', fillOpacity:0.22 } },
+    { id:'layer-forest',           label:'Forest',                group:null, colour:'#5cb85c', style:{ color:'#5cb85c', weight:1.2, opacity:0.9, dashArray:'4 3', fillColor:'#5cb85c', fillOpacity:0.22 } },
+    // Infrastructure
+    { id:'layer-strr',             label:'STRR',                  group:null, colour:'#2573F0', style:{ color:'#2573F0', weight:1.2, opacity:0.9, dashArray:'4 3', fillColor:'#2573F0', fillOpacity:0.22 } },
+    { id:'layer-nice-road',        label:'Nice Road',             group:null, colour:'#FF9800', style:{ color:'#FF9800', weight:3, opacity:1, fill:false } },
+    { id:'layer-nice-road-extend', label:'Nice Road Extended',    group:null, colour:'#FF9800', style:{ color:'#FF9800', weight:5, opacity:0.8, dashArray:'12 12', fill:false } },
+    { id:'layer-prr',              label:'PRR',                   group:null, colour:'#F44336', style:{ color:'#F44336', weight:2, opacity:1, fill:false } },
+    // Social
+    { id:'layer-bustops',          label:'Bus Stops',             group:null, colour:'#a6be4b', pointStyle:{ radius:5, fillColor:'#a6be4b', color:'#a6be4b', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-bustands',         label:'Bus Stands',            group:null, colour:'#a6be4b', pointStyle:{ radius:5, fillColor:'#a6be4b', color:'#a6be4b', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-railway',          label:'Railway Stations',      group:null, colour:'#607D8B', pointStyle:{ radius:5, fillColor:'#607D8B', color:'#607D8B', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-fuel',             label:'Fuel Stations',         group:null, colour:'#888888', pointStyle:{ radius:5, fillColor:'#888888', color:'#888888', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-healthcare',       label:'Healthcare',            group:null, colour:'#cc3333', pointStyle:{ radius:5, fillColor:'#cc3333', color:'#cc3333', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-restaurants',      label:'Restaurants',           group:null, colour:'#FF5722', pointStyle:{ radius:5, fillColor:'#FF5722', color:'#FF5722', weight:0, opacity:1, fillOpacity:1 } },
+    { id:'layer-stores',           label:'Stores',                group:null, colour:'#009688', pointStyle:{ radius:5, fillColor:'#009688', color:'#009688', weight:0, opacity:1, fillOpacity:1 } },
+  ];
+
+  const GROUPS = [
+    { id:'topography',    label:'Topography',    layers:['layer-contour','layer-dem'] },
+    { id:'boundaries',    label:'Boundaries',    layers:['layer-land-boundary','layer-total-boundary','layer-survey-boundary','layer-ck-village','layer-bm-village'] },
+    { id:'ecological',    label:'Ecological',    layers:['layer-wetlands','layer-agriculture','layer-forest'] },
+    { id:'infrastructure',label:'Infrastructure',layers:['layer-strr','layer-nice-road','layer-nice-road-extend','layer-prr'] },
+    { id:'social',        label:'Social Layer',  layers:['layer-bustops','layer-bustands','layer-railway','layer-fuel','layer-healthcare','layer-restaurants','layer-stores'] },
+  ];
+
+  // Initialise empty layer groups for all defs
+  LAYER_DEFS.forEach(def => {
+    def.group = L.featureGroup();
+    if (!['layer-geology','layer-geomorphology','layer-lithology'].includes(def.id)) {
+      def.group.addTo(map);
+    }
+  });
+
+  function getLayerDef(id) { return LAYER_DEFS.find(d => d.id === id); }
+
+  /* ══════════════════════════════════════════════════════════
+     KML PARSER
+  ══════════════════════════════════════════════════════════ */
+  /* ── coordinate parser: KML lng,lat → Leaflet [lat,lng] ── */
+  function coords(raw) {
+    const out = [];
+    for (const tok of (raw||'').trim().split(/\s+/)) {
+      const p = tok.split(',');
+      if (p.length < 2) continue;
+      const lng = parseFloat(p[0]), lat = parseFloat(p[1]);
+      if (!isNaN(lat) && !isNaN(lng)) out.push([lat, lng]);
+    }
+    return out;
+  }
+
+  /* direct child by tag (avoid deep querySelector picking up nested tags) */
+  function child(el, tag) {
+    for (const c of el.children) if (c.tagName === tag) return c;
+    return null;
+  }
+  function children(el, tag) {
+    const out = [];
+    for (const c of el.children) if (c.tagName === tag) out.push(c);
+    return out;
+  }
+
+  function renderPM(pm, group, lineStyle, pointStyle) {
+    const nameEl = child(pm, 'name');
+    const label = nameEl ? nameEl.textContent.trim() : '';
+
+    // ── Polygon ──
+    const polyEl = child(pm, 'Polygon');
+    if (polyEl) {
+      const obEl = child(polyEl, 'outerBoundaryIs');
+      const lrEl = obEl ? (child(obEl,'LinearRing') || obEl) : null;
+      const cEl  = lrEl ? child(lrEl,'coordinates') : null;
+      const outer = cEl ? coords(cEl.textContent) : [];
+      if (outer.length >= 3) {
+        const rings = [outer];
+        for (const ib of children(polyEl,'innerBoundaryIs')) {
+          const lr2 = child(ib,'LinearRing') || ib;
+          const c2  = child(lr2,'coordinates');
+          if (c2) { const h = coords(c2.textContent); if (h.length >= 3) rings.push(h); }
+        }
+        const pg = L.polygon(rings, lineStyle || {color:'#ff0',weight:1,fillOpacity:0.3});
+        if (label) pg.bindPopup(label);
+        pg.addTo(group);
+      }
+      return;
+    }
+
+    // ── LineString ──
+    const lineEl = child(pm, 'LineString');
+    if (lineEl) {
+      const cEl = child(lineEl, 'coordinates');
+      const pts = cEl ? coords(cEl.textContent) : [];
+      if (pts.length >= 2) {
+        const pl = L.polyline(pts, lineStyle || {color:'#ff0',weight:2});
+        if (label) pl.bindPopup(label);
+        pl.addTo(group);
+      }
+      return;
+    }
+
+    // ── MultiGeometry ──
+    const mgEl = child(pm, 'MultiGeometry');
+    if (mgEl) {
+      for (const c of mgEl.children) {
+        if (c.tagName === 'LineString') {
+          const cEl = child(c,'coordinates');
+          if (cEl) { const pts = coords(cEl.textContent); if (pts.length>=2) L.polyline(pts, lineStyle||{color:'#ff0',weight:2}).addTo(group); }
+        } else if (c.tagName === 'Polygon') {
+          const obEl = child(c,'outerBoundaryIs');
+          const lrEl = obEl ? (child(obEl,'LinearRing')||obEl) : null;
+          const cEl  = lrEl ? child(lrEl,'coordinates') : null;
+          if (cEl) { const outer=coords(cEl.textContent); if (outer.length>=3) L.polygon([outer], lineStyle||{color:'#ff0',weight:1,fillOpacity:0.3}).addTo(group); }
+        }
+      }
+      return;
+    }
+
+    // ── Point ──
+    const ptEl = child(pm, 'Point');
+    if (ptEl) {
+      const cEl = child(ptEl, 'coordinates');
+      if (cEl) {
+        const p = cEl.textContent.trim().split(',');
+        const lng = parseFloat(p[0]), lat = parseFloat(p[1]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          const ps = pointStyle || {radius:6,color:'#fff',weight:1.5,fillColor:'#ff0',fillOpacity:1};
+          const mk = L.circleMarker([lat,lng], ps);
+          if (label) mk.bindPopup(label);
+          mk.addTo(group);
+        }
+      }
+    }
+  }
+
+  function collectToGroup(el, def) {
+    if (!el) return;
+    for (const c of el.children) {
+      if (c.tagName === 'Placemark') {
+        renderPM(c, def.group, def.style || null, def.pointStyle || null);
+      } else if (c.tagName === 'GroundOverlay') {
+        renderGroundOverlay(c, def.group, def);
+      } else if (c.tagName === 'Folder' || c.tagName === 'Document') {
+        collectToGroup(c, def);
+      }
+    }
+  }
+
+  function renderGroundOverlay(go, group, def) {
+    const iconEl = child(go, 'Icon');
+    const hrefEl = iconEl ? child(iconEl, 'href') : null;
+    const llBox = child(go, 'LatLonBox');
+    if (hrefEl && llBox) {
+      const url = hrefEl.textContent.trim();
+      const n = parseFloat(child(llBox, 'north').textContent);
+      const s = parseFloat(child(llBox, 'south').textContent);
+      const e = parseFloat(child(llBox, 'east').textContent);
+      const w = parseFloat(child(llBox, 'west').textContent);
+      const opacity = def && def.style && def.style.opacity !== undefined ? def.style.opacity : 0.7;
+      L.imageOverlay(url, [[s, w], [n, e]], { opacity: opacity }).addTo(group);
+    }
+  }
+
+  function findFeature(doc, name) {
+    for (const tag of ['Folder', 'Placemark', 'GroundOverlay']) {
+      for (const f of doc.getElementsByTagName(tag)) {
+        const n = Array.from(f.children).find(c => c.tagName === 'name');
+        if (n && n.textContent.trim() === name) return f;
+      }
+    }
+    return null;
+  }
+
+  function loadKMLIntoLayers(kmlDoc) {
+    const map_folder = [
+      ['layer-geology',          'Geology_Clip'],
+      ['layer-geomorphology',    'GeomorphologyLandform_Clip'],
+      ['layer-lithology',        'Lithology_Clip'],
+      ['layer-contour',          'Contour'],
+      ['layer-dem',              'DEM'],
+      ['layer-land-boundary',    'Land Boundary'],
+      ['layer-total-boundary',   'Total Boundary'],
+      ['layer-survey-boundary',  'Survey boundary'],
+      ['layer-ck-village',       'Chinnakurchi Village Boundary'],
+      ['layer-bm-village',       'BADAMANAVARTI KAVAL'],
+      ['layer-watershed',        'Watershed boundary'],
+      ['layer-wetlands',         'wetland'],
+      ['layer-agriculture',      'Agriculture'],
+      ['layer-forest',           'Forest'],
+      ['layer-strr',             'STRR'],
+      ['layer-nice-road',        'Nice Road'],
+      ['layer-nice-road-extend', 'Nice Road Extend'],
+      ['layer-prr',              'PRR'],
+      ['layer-bustops',          'Bustops'],
+      ['layer-bustands',         'Bustand'],
+      ['layer-railway',          'Railway station'],
+      ['layer-fuel',             'Fuel Stration'],
+      ['layer-healthcare',       'Healthcare'],
+      ['layer-restaurants',      'Restaurants'],
+      ['layer-stores',           'Stores'],
+    ];
+
+    let loaded = 0;
+    map_folder.forEach(([layerId, folderName]) => {
+      const def = getLayerDef(layerId);
+      if (!def) return;
+      const feature = findFeature(kmlDoc, folderName);
+      if (feature) {
+        if (feature.tagName === 'Placemark') {
+          renderPM(feature, def.group, def.style || null, def.pointStyle || null);
+        } else if (feature.tagName === 'GroundOverlay') {
+          renderGroundOverlay(feature, def.group, def);
+        } else {
+          collectToGroup(feature, def);
+        }
+        loaded++;
+      }
+    });
+    console.log(`KML loaded: ${loaded} layers populated`);
+    buildLayerList();
+  }
+
+  /* ── Fetch + parse KML (must run via http server, not file://) ── */
+  const kmlFiles = [
+    'Chinakurchi Land Data.kml?v=1780140864',
+    'assets/Geology.kml?v=1780140864',
+    'assets/Geomorphology.kml?v=1780140864',
+    'assets/Lithology.kml?v=1780140864'
+  ];
+
+  Promise.all(kmlFiles.map(file => 
+    fetch(file)
+      .then(r => { if (!r.ok) return null; return r.text(); })
+      .then(text => {
+        if (!text) return null;
+        text = text
+          .replace(/ xmlns(?::[a-zA-Z0-9]+)?="[^"]*"/g, '')
+          .replace(/<(\/?)gx:/g, '<$1gx_');
+        return new DOMParser().parseFromString(text, 'text/xml');
+      })
+      .catch(err => { console.error('KML load error for ' + file + ':', err); return null; })
+  )).then(docs => {
+    docs.forEach(doc => {
+      if (doc) loadKMLIntoLayers(doc);
+    });
+  });
+
+  // Load KMZ separately using leaflet-kmz
+  const demDef = getLayerDef('layer-dem');
+  if (demDef && demDef.group) {
+    const kmzLayer = L.kmzLayer().addTo(demDef.group);
+    kmzLayer.on('load', function(e) {
+      kmzLayer.eachLayer(function(layer) {
+        if (layer.setOpacity) layer.setOpacity(0.2);
+        if (layer.bringToBack) layer.bringToBack();
+      });
+    });
+    kmzLayer.load('assets/DEM_LayerToKML.kmz?v=1780140864');
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     LAYER PANEL
+  ══════════════════════════════════════════════════════════ */
+  function buildLayerList() {
+    const listEl = document.getElementById('layer-list');
+    listEl.innerHTML = '';
+    
+    GROUPS.forEach(group => {
+      const defs = group.layers.map(id => getLayerDef(id)).filter(Boolean);
+      if (!defs.length) return;
+      
+      const hdr = document.createElement('div');
+      hdr.className = 'cat-header';
+      
+      const lbl = document.createElement('span');
+      lbl.className = 'cat-label'; lbl.textContent = group.label;
+      
+      const hdrRight = document.createElement('div');
+      hdrRight.style.display = 'flex'; hdrRight.style.alignItems = 'center'; hdrRight.style.gap = '12px';
+      
+      const pill = document.createElement('label');
+      pill.className = 'pill';
+      pill.addEventListener('click', (e) => e.stopPropagation());
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.checked = true;
+      inp.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        defs.forEach(def => {
+          const childInp = document.getElementById('tog-' + def.id);
+          if (childInp && childInp.checked !== isChecked) {
+            childInp.checked = isChecked;
+            toggleLayer(def.id);
+          }
+        });
+      });
+      const track = document.createElement('span');
+      track.className = 'pill-track';
+      pill.append(inp, track);
+      
+      const arrow = document.createElement('span');
+      arrow.className = 'cat-arrow open'; arrow.textContent = '▾';
+      
+      hdrRight.append(pill, arrow);
+      hdr.append(lbl, hdrRight);
+      
+      const rowsEl = document.createElement('div');
+      rowsEl.className = 'cat-rows';
+      
+      defs.forEach(def => {
+        const row = document.createElement('div');
+        row.className = 'layer-row';
+        row.id = 'row-' + def.id;
+        
+        const sw = document.createElement('div');
+        sw.className = 'swatch'; sw.style.background = def.colour;
+        
+        const lb = document.createElement('span');
+        lb.className = 'layer-lbl'; lb.textContent = def.label;
+        
+        const pill = document.createElement('label');
+        pill.className = 'pill';
+        const inp = document.createElement('input');
+        inp.type = 'checkbox';
+        inp.checked = true;
+        inp.id = 'tog-' + def.id;
+        inp.addEventListener('change', () => toggleLayer(def.id));
+        const track = document.createElement('span');
+        track.className = 'pill-track';
+        pill.append(inp, track);
+        
+        row.append(sw, lb, pill);
+        rowsEl.appendChild(row);
+      });
+      
+      let open = true;
+      hdr.addEventListener('click', () => {
+        open = !open;
+        arrow.classList.toggle('open', open);
+        rowsEl.style.maxHeight = open ? rowsEl.scrollHeight + 'px' : '0px';
+      });
+      
+      listEl.appendChild(hdr);
+      listEl.appendChild(rowsEl);
+      
+      requestAnimationFrame(() => { rowsEl.style.maxHeight = rowsEl.scrollHeight + 'px'; });
+    });
+  }
+
+  function toggleLayer(id) {
+    const def = getLayerDef(id);
+    if (!def || !def.group) return;
+    const inp = document.getElementById('tog-' + id);
+    if (!inp.checked) map.removeLayer(def.group);
+    else def.group.addTo(map);
+  }
+
+  function toggleAll(show) {
+    allVisible = show;
+    LAYER_DEFS.forEach(def => {
+      if (!def.group) return;
+      if (allVisible) def.group.addTo(map);
+      else map.removeLayer(def.group);
+      
+      const inp = document.getElementById('tog-' + def.id);
+      if (inp) inp.checked = allVisible;
+    });
+  }
+
+  function togglePanel() {
+    panelOpen = !panelOpen;
+    document.getElementById('layer-panel').classList.toggle('hidden', !panelOpen);
+    document.getElementById('panel-toggle').classList.toggle('open', panelOpen);
+  }
+
+  function toggleBasemap() {
+    basemapOpen = !basemapOpen;
+    document.getElementById('basemap-panel').classList.toggle('open', basemapOpen);
+  }
+
+  function toggleExpand() {
+    isExpanded = !isExpanded;
+    document.body.classList.toggle('expanded', isExpanded);
+    document.getElementById('expand-label').textContent = isExpanded ? 'Show Panel' : 'Expand Map';
+    resizeMap();
+  }
+
+  function toggleSection(head, layerId) {
+    const body = head.nextElementSibling;
+    const isOpen = head.classList.toggle('open');
+    body.classList.toggle('open');
+    
+    if (layerId) {
+      const def = getLayerDef(layerId);
+      if (def && def.group) {
+        if (isOpen) {
+          if (!map.hasLayer(def.group)) map.addLayer(def.group);
+        } else {
+          if (map.hasLayer(def.group)) map.removeLayer(def.group);
+        }
+      }
+    }
+  }
+
+  /* ── Basemap switcher ── */
+  function setBase(key, name) {
+    if (key === currentBase) { toggleBasemap(); return; }
+    map.removeLayer(BASES[currentBase]);
+    currentBase = key;
+    BASES[key].addTo(map);
+    BASES[key].bringToBack();
+    ['satellite','streets','outdoors','dark'].forEach(k =>
+      document.getElementById('bm-' + k).classList.toggle('active', k === key));
+    document.getElementById('active-base-name').textContent = name;
+    basemapOpen = false;
+    document.getElementById('basemap-panel').classList.remove('open');
+  }
+
+  /* ── Click to close panels ── */
+  map.on('click', () => {
+    if (panelOpen)   { panelOpen   = false; document.getElementById('panel').classList.remove('open'); }
+    if (basemapOpen) { basemapOpen = false; document.getElementById('basemap-panel').classList.remove('open'); }
+  });
+
+  function closePopup() { document.getElementById('popup').classList.remove('show'); }
+
+  /* ── Scale dashes on zoom for wetland/agri/forest ── */
+  map.on('zoomend', function() {
+    const z = map.getZoom();
+    const scale = Math.pow(2, z - 14);
+    const dash = (4 * scale) + ' ' + (16 * scale);
+    LAYER_DEFS.forEach(def => {
+      if (def.id === 'layer-wetlands' || def.id === 'layer-agriculture' || def.id === 'layer-forest') {
+        if (def.group) {
+          def.group.eachLayer(layer => {
+            if (layer.setStyle) layer.setStyle({ dashArray: dash });
+          });
+        }
+      }
+    });
+  });
+
+  let catchmentVisible = false;
+  function zoomToWaterbodies() {
+    const wsDef = getLayerDef('layer-watershed');
+    const wlDef = getLayerDef('layer-wetlands');
+    
+    if (wlDef && wlDef.group) {
+      if (!map.hasLayer(wlDef.group)) {
+        const row = document.getElementById('row-layer-wetlands');
+        const tog = document.getElementById('tog-layer-wetlands');
+        if (row) row.classList.remove('off');
+        if (tog) tog.classList.add('on');
+        map.addLayer(wlDef.group);
+      }
+      map.flyTo([12.818803, 77.466339], 18, { duration: 1.2 });
+    }
+
+    if (wsDef && wsDef.group) {
+      if (!catchmentVisible) {
+        wsDef.group.addTo(map);
+        catchmentVisible = true;
+      }
+    }
+  }
+
+</script>
+</body>
+</html>
