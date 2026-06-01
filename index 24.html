@@ -549,6 +549,58 @@
       line-height: 1.85; color: rgba(184,200,180,.55);
     }
     .phil-spacer { height: 100vh; }
+    /* ── MOBILE RESPONSIVENESS ── */
+    @media (max-width: 768px) {
+      /* Navigation */
+      #nav { padding: 0 24px; }
+      .nav-row1 { display: flex; justify-content: space-between; flex-wrap: wrap; padding: 16px 0; }
+      .nav-title { order: 3; width: 100%; margin-top: 12px; font-size: 0.8rem; text-align: left; }
+      .nav-actions { gap: 16px; }
+      .nav-actions a.nav-pill { padding: 6px 12px; font-size: 8px; }
+      .nav-row2 { display: none; }
+      
+      /* Global Spacing */
+      .nodes { padding: 80px 24px; }
+      .baselines { padding: 80px 24px; }
+      .bottom { padding: 60px 24px 0; }
+      
+      /* Typography */
+      .line-xxl { font-size: 2.8rem; }
+      .line-xl { font-size: 2.2rem; }
+      .line-lg { font-size: 1.8rem; }
+      .line-md { font-size: 1.4rem; }
+      .scene-text { padding: 0 24px 8vh; }
+      .scene-text.center { padding: 0 24px; }
+      
+      /* Nodes Grid */
+      .nodes-grid { grid-template-columns: 1fr; gap: 40px; }
+      .node-img { height: 200px; }
+      .node-content { padding: 24px; }
+      
+      /* Baselines Grid */
+      .bl-pair { grid-template-columns: 1fr; }
+      .bl { padding: 40px 24px; }
+      
+      /* Bottom Grid */
+      .btm-grid { grid-template-columns: 1fr; gap: 60px; padding-bottom: 40px; }
+      footer { grid-template-columns: 1fr; gap: 32px; padding: 24px 0; text-align: center; }
+      .ft-brand { margin-bottom: 12px; }
+      .ft-brand p { max-width: 100%; margin: 0 auto; }
+      .ft-copy { flex-direction: column; align-items: center; gap: 12px; }
+      
+      /* Philosophy Section */
+      #phil-wrap { display: flex; flex-direction: column; justify-content: center; padding-top: 10vh; }
+      #phil-left { padding: 0 24px 40px; }
+      #phil-right { padding-left: 24px; }
+      .phil-card { width: 80vw; margin-right: 16px; padding: 32px 28px; }
+      
+      /* Data Rows */
+      .data-row { flex-direction: column; gap: 24px; }
+      
+      /* Manifesto */
+      #manifesto { padding: 80px 24px 60px; }
+      .mf-close { top: 24px; right: 24px; }
+    }
   </style>
 </head>
 <body>
