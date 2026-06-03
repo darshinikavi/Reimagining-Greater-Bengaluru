@@ -1,6 +1,16 @@
 import os
 import re
 import glob
+import subprocess
+
+def run_cmd(cmd):
+    print(f"Running: {cmd}")
+    result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
+    return result.returncode
 
 def update_html_asset_extensions(html_path="index.html", assets_dir="assets"):
     """
@@ -8,7 +18,7 @@ def update_html_asset_extensions(html_path="index.html", assets_dir="assets"):
     If the file in the assets folder has a different extension (like .webm),
     it updates the HTML automatically to match.
     """
-    print(f"Checking {html_path} for updated asset formats...")
+    print(f"--- 1. Checking {html_path} for updated asset formats ---")
     
     if not os.path.exists(html_path):
         print(f"Error: {html_path} not found.")
@@ -50,8 +60,49 @@ def update_html_asset_extensions(html_path="index.html", assets_dir="assets"):
             f.write(updated_content)
         print(f"Successfully updated {changes_made} asset references in {html_path}.")
     else:
-        print("All asset links in the HTML match the actual files in the folder. No updates necessary.")
+        print("All asset links in the HTML already match the actual files in the folder.")
+
+def main():
+    # 1. Update HTML assets
+    update_html_asset_extensions("index.html")
+    
+    print("\n--- 2. Pushing to GitHub ---")
+    
+    # 2. Ignore massive .mp4 files so push doesn't fail
+    gitignore_path = ".gitignore"
+    ignore_entries = ["*.mp4", "*.MP4", "assets/*.mp4", "assets/*.MP4"]
+    
+    existing_lines = []
+    if os.path.exists(gitignore_path):
+        try:
+            with open(gitignore_path, "r", encoding="utf-8") as f:
+                existing_lines = [line.strip() for line in f.readlines()]
+        except UnicodeDecodeError:
+            with open(gitignore_path, "r", encoding="utf-16") as f:
+                existing_lines = [line.strip() for line in f.readlines()]
+            
+    try:
+        with open(gitignore_path, "a", encoding="utf-8") as f:
+            for entry in ignore_entries:
+                if entry not in existing_lines:
+                    f.write(f"\n{entry}\n")
+    except UnicodeDecodeError:
+        pass
+
+    # 3. Stage changes
+    run_cmd("git add .")
+    
+    # 4. Commit
+    commit_msg = "Auto-sync: Detect asset updates and push to Git"
+    run_cmd(f'git commit -m "{commit_msg}"')
+    
+    # 5. Push
+    code = run_cmd("git push origin main")
+    
+    if code == 0:
+        print("\n[SUCCESS] Successfully pushed to GitHub!")
+    else:
+        print("\n[ERROR] Failed to push to GitHub. See errors above.")
 
 if __name__ == "__main__":
-    # Note: Using index.html since we renamed index 24.html
-    update_html_asset_extensions("index.html")
+    main()

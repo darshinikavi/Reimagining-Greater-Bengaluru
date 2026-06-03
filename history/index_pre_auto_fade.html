@@ -163,22 +163,6 @@
     .line-gold { color: var(--gold); }
     .line-eyebrow { font-family: 'Syne', sans-serif; font-size: .65rem; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); }
     .line-gap { height: clamp(.8rem, 1.5vh, 1.5rem); display: block; }
-    
-    /* ── AUTO-FADE SECTIONS ── */
-    .auto-fade .line {
-      opacity: 0;
-      transform: translateY(22px);
-      transition: opacity 1.2s cubic-bezier(.25,.46,.45,.94),
-                  transform 1.2s cubic-bezier(.25,.46,.45,.94);
-    }
-    .auto-fade.in-view .line {
-      opacity: 1; transform: none;
-    }
-    .auto-fade.in-view .line:nth-child(1) { transition-delay: 0.2s; }
-    .auto-fade.in-view .line:nth-child(2) { transition-delay: 1.0s; }
-    .auto-fade.in-view .line:nth-child(3) { transition-delay: 1.8s; }
-    .auto-fade.in-view .line:nth-child(4) { transition-delay: 2.6s; }
-    .auto-fade.in-view .line:nth-child(5) { transition-delay: 3.4s; }
 
     /* ── DATA MOMENTS ── */
     .data-row {
@@ -649,7 +633,7 @@
 <!-- ═══════════════════════════════════════════
      SCENE 1 — LANDSCAPE AT THE EDGE
 ═══════════════════════════════════════════ -->
-<div class="scene-track" style="height: 100vh" id="s1track">
+<div class="scene-track" style="height: 160vh" id="s1track">
   <div class="scene-sticky" id="s1">
 
     <!-- Dark atmospheric background — video loads over this -->
@@ -677,20 +661,29 @@
 </div>
 
 <!-- ═══════════════════════════════════════════
-     SCENE 2 — WATER SYSTEMS
+     SCENE 2 — WATER SYSTEMS (fixed-video technique)
 ═══════════════════════════════════════════ -->
-<div class="scene-track auto-fade" style="height: 100vh" id="s2track">
-  <div class="scene-sticky" id="s2">
-    <div class="scene-video active">
-      <video autoplay muted loop playsinline id="v2" data-src="assets/Scene 2.webm"></video>
-    </div>
-    <div class="scene-grad" style="background:linear-gradient(to right,rgba(7,16,10,.8) 0%,rgba(7,16,10,.15) 60%,transparent 100%);z-index:1;"></div>
-    <div class="scene-text">
-      <span class="line line-eyebrow">Water Systems</span>
-      <span class="line line-xl">Water shaped this land<br><em style="font-style:italic;color:var(--sage)">long before<br>infrastructure.</em></span>
-      <span class="line line-md line-pale" style="margin-top:14px;">Monsoon cycles. Catchment hydrology.<br>A living aquifer beneath the surface.</span>
-    </div>
+<div class="vid-section" id="s2track">
+
+  <!-- Video — sticky, stays pinned while spacers scroll -->
+  <div class="vid-fixed" id="s2vidfixed">
+    <video autoplay muted loop playsinline id="v2" data-src="assets/Scene 2.webm"></video>
+    <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(7,16,10,.8) 0%,rgba(7,16,10,.15) 60%,transparent 100%);z-index:1;"></div>
   </div>
+
+  <!-- Sticky text overlay — lines accumulate as you scroll -->
+  <div class="vid-textbox">
+    <span class="vline vl-eyebrow" id="s2l0">Water Systems</span>
+    <span class="vline vl-xl" id="s2l1">Water shaped this land<br><em style="font-style:italic;color:var(--sage)">long before<br>infrastructure.</em></span>
+    <span class="vline vl-md" id="s2l2">Monsoon cycles. Catchment hydrology.<br>A living aquifer beneath the surface.</span>
+  </div>
+
+  <!-- Spacers — each triggers one line reveal -->
+  <div class="vid-spacer" id="s2step0"></div>
+  <div class="vid-spacer" id="s2step1"></div>
+  <div class="vid-spacer" id="s2step2"></div>
+
+
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -698,18 +691,18 @@
 ═══════════════════════════════════════════ -->
 
 <!-- Cinematic text moment -->
-<div class="scene-track auto-fade" style="height: 100vh" id="s3track">
+<div class="scene-track" style="height: 350vh" id="s3track">
   <div class="scene-sticky" id="s3">
     <div class="scene-video-placeholder active" style="position:absolute;inset:0;background:var(--ink);">
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 35% 55%,rgba(43,80,60,.22) 0%,transparent 60%),radial-gradient(ellipse at 72% 30%,rgba(42,95,122,.12) 0%,transparent 50%);"></div>
     </div>
     <div class="scene-grad" style="background:linear-gradient(to top,rgba(7,16,10,.8) 0%,rgba(7,16,10,.2) 60%,transparent 100%)"></div>
     <div class="scene-text center">
-      <span class="line line-eyebrow">Before Bengaluru grew</span>
+      <span class="line line-eyebrow" data-scene="3" data-step="0">Before Bengaluru grew</span>
       <span class="line-gap"></span>
-      <span class="line line-xl">Lalbagh. 1760.<br>Cubbon Park. 1870.</span>
+      <span class="line line-xl" data-scene="3" data-step="1">Lalbagh. 1760.<br>Cubbon Park. 1870.</span>
       <span class="line-gap"></span>
-      <span class="line line-md line-italic line-pale">Planned before the city arrived.<br>Irreplaceable today.</span>
+      <span class="line line-md line-italic line-pale" data-scene="3" data-step="2">Planned before the city arrived.<br>Irreplaceable today.</span>
     </div>
   </div>
 </div>
@@ -776,24 +769,25 @@
 <!-- ═══════════════════════════════════════════
      SCENE 3b — GROWTH
 ═══════════════════════════════════════════ -->
-<div class="scene-track auto-fade" style="height: 100vh" id="s3btrack">
-  <div class="scene-sticky" id="s3b">
-    <div class="scene-video active">
-      <video autoplay muted loop playsinline id="v3" data-src="assets/Scene 3.webm"></video>
-    </div>
-    <div class="scene-grad" style="background:rgba(7,16,10,.5);z-index:1;"></div>
-    <div class="scene-text center">
-      <span class="line line-xl">Growth continued.</span>
-      <span class="line-gap"></span>
-      <span class="line line-xl" style="font-style:italic;color:rgba(184,200,180,.65)">But ecology was left behind.</span>
-    </div>
+<div class="vid-section" id="s3btrack">
+  <div class="vid-fixed" id="s3bvidfixed">
+    <video autoplay muted loop playsinline id="v3" data-src="assets/Scene 3.webm"></video>
+    <div style="position:absolute;inset:0;background:rgba(7,16,10,.5);z-index:1;"></div>
   </div>
+
+  <div class="vid-textbox" style="align-items:center;justify-content:center;text-align:center;">
+    <span class="vline vl-xl" id="s3bl0">Growth continued.</span>
+    <span class="vline vl-xl" id="s3bl1" style="font-style:italic;color:rgba(184,200,180,.65)">But ecology was left behind.</span>
+  </div>
+
+  <div class="vid-spacer" id="s3bstep0"></div>
+  <div class="vid-spacer" id="s3bstep1"></div>
 </div>
 
 <!-- ═══════════════════════════════════════════
      SCENE 4 — THE QUESTION
 ═══════════════════════════════════════════ -->
-<div class="scene-track auto-fade" style="height: 100vh" id="s4track">
+<div class="scene-track" style="height: 280vh" id="s4track">
   <div class="scene-sticky" id="s4">
 
     <!-- Pure black — no video -->
@@ -811,8 +805,8 @@
     </div>
 
     <div class="scene-text center">
-      <span class="line line-xxl line-italic">What if Bengaluru</span>
-      <span class="line line-xxl line-italic line-sage">grew differently?</span>
+      <span class="line line-xxl line-italic" data-scene="4" data-step="0">What if Bengaluru</span>
+      <span class="line line-xxl line-italic line-sage" data-scene="4" data-step="1">grew differently?</span>
     </div>
   </div>
 </div>
@@ -1182,38 +1176,26 @@
       const isLastScene = si === scenes.length - 1;
 
       scene.lines.forEach((line, li) => {
-        if (!scene.track.classList.contains('auto-fade')) {
-          // Spread reveals evenly across first 80% of the track (for older scenes if any)
-          const showAt = (li / nLines) * 0.75;
-  
-          if (t >= showAt) {
-            line.classList.add('show');
-            line.classList.remove('gone');
-          } else {
-            line.classList.remove('show', 'gone');
-          }
-  
-          // If scene is over (we've scrolled past), fade all out
-          if (t >= 0.98 && !isLastScene) {
-            line.classList.remove('show');
-            line.classList.add('gone');
-          }
+        // Spread reveals evenly across first 80% of the track
+        const showAt = (li / nLines) * 0.75;
+
+        if (t >= showAt) {
+          line.classList.add('show');
+          line.classList.remove('gone');
+        } else {
+          line.classList.remove('show', 'gone');
+        }
+
+        // If scene is over (we've scrolled past), fade all out
+        if (t >= 0.98 && !isLastScene) {
+          line.classList.remove('show');
+          line.classList.add('gone');
         }
       });
     });
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-
-  // Auto-fade intersection observer
-  const fadeObs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('in-view');
-      }
-    });
-  }, { threshold: 0.35 });
-  document.querySelectorAll('.auto-fade').forEach(s => fadeObs.observe(s));
 
   // Lazy load videos when near viewport
   const vidObs = new IntersectionObserver(entries => {
