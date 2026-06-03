@@ -934,10 +934,10 @@
 
   /* ── Fetch + parse KML (must run via http server, not file://) ── */
   const kmlFiles = [
-    'Chinakurchi Land Data.kml?v=1780140864',
-    'assets/Geology.kml?v=1780140864',
-    'assets/Geomorphology.kml?v=1780140864',
-    'assets/Lithology.kml?v=1780140864'
+    'Chinakurchi Land Data.kml?v=1780310745',
+    'assets/Geology.kml?v=1780310745',
+    'assets/Geomorphology.kml?v=1780310745',
+    'assets/Lithology.kml?v=1780310745'
   ];
 
   Promise.all(kmlFiles.map(file => 
@@ -967,7 +967,7 @@
         if (layer.bringToBack) layer.bringToBack();
       });
     });
-    kmzLayer.load('assets/DEM_LayerToKML.kmz?v=1780140864');
+    kmzLayer.load('assets/DEM_LayerToKML.kmz?v=1780310745');
   }
 
   /* ══════════════════════════════════════════════════════════
